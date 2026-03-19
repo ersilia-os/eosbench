@@ -14,10 +14,6 @@ Requires Python 3.10+.
 pip install .
 ```
 
-```bash
-pip install -e .[dev]  # for development
-```
-
 ---
 
 ## Datasets
@@ -150,15 +146,6 @@ from eosbench import get_path
 path = get_path("data", "ames", source="tdc", task="classification")
 # Path("data/tdc/classification/ames")
 ```
-
----
-
-## Testing
-
-```bash
-pytest
-```
-
 ---
 
 ## About Ersilia
