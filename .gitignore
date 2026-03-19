@@ -1,6 +1,21 @@
 data/
 
+# Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.pyo
+*.pyd
+
+# Testing
 .pytest_cache/
+.coverage
+htmlcov/
+
+# Tools
+.ruff_cache/
 .DS_Store
