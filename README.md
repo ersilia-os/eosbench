@@ -1,8 +1,8 @@
-# eosbench
+# Ersilia benchmarks for ML training
 
 A Python package for loading molecular activity datasets used in Ersilia ML development.
 
-> **Important:** This repository is not an official benchmark. Cross-validation splits are arbitrary and were not designed to reproduce any published protocol. Performance numbers obtained here **cannot be directly compared** with results from TDC, MoleculeNet, or any other benchmarking framework.
+> **Important:** This repository is not an official benchmark. Cross-validation splits are arbitrary and were not designed to reproduce any published protocol. Performance numbers obtained here **cannot be directly compared** with results from TDC or any other benchmarking framework.
 
 ---
 
@@ -46,7 +46,7 @@ from eosbench import get_catalog
 
 catalog = get_catalog()
 catalog = get_catalog(source="tdc")           # filter by source
-catalog = get_catalog(task="regression")      # filter by task type
+catalog = get_catalog(task="classification")  # filter by task type
 ```
 
 Columns:
