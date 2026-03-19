@@ -8,15 +8,18 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 import time
 
-bench_group = "chembl"
-bench_task = "chembl4659961"
-descriptor = "chemeleon"
+bench_group = "tdc"
+bench_task = "carcinogens_lagunin"
+descriptor = "morgan"
 
 data_path = f"data/{bench_group}/classification/{bench_task}"
 
 print("Loading data...")
 X = np.load(f"{data_path}/morgan.npy")
-y = pd.read_csv(f"{data_path}/data.csv")["value"].values
+try:
+    y = pd.read_csv(f"{data_path}/data.csv")["value"].values
+except:
+    y = pd.read_csv(f"{data_path}/data.csv")["activity"].values
 print("Data loaded.")
 
 print("Training Model...")
@@ -33,7 +36,7 @@ def select_model(model_name):
         return LazyBinaryClassifier()
     else:
         raise ValueError(f"Unknown model name: {model_name}")
-    
+
 def train_and_evaluate(model_name):
     model = select_model(model_name)
     start_time = time.time()
@@ -42,6 +45,11 @@ def train_and_evaluate(model_name):
     auroc = roc_auc_score(y_test, y_hat)
     print(f"{model_name} AUROC: {auroc:.4f}")
     print(f"Time taken: {time.time() - start_time:.2f} seconds")
+    return auroc
 
+aurocs = []
+for model_name in ["random_forest", "xgboost"]:
+    aurocs.append(train_and_evaluate(model_name))
 
-train_and_evaluate("xgboost")
+for model_name, auroc in zip(["random_forest", "xgboost"], aurocs):
+    print(f"{model_name} AUROC: {auroc:.4f}")
