@@ -1,0 +1,12 @@
+{
+  "source": "tdc",
+  "dataset": "bbb_martins",
+  "featurizer": "morgan",
+  "n_samples": 2039,
+  "n_positives": 1560,
+  "n_negatives": 479,
+  "auroc_mean": 0.9168,
+  "auroc_std": 0.0089,
+  "aupr_mean": 0.9639,
+  "aupr_std": 0.0064
+}

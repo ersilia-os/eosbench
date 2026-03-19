@@ -1,0 +1,12 @@
+{
+  "source": "tdc",
+  "dataset": "cyp3a4_veith",
+  "featurizer": "morgan",
+  "n_samples": 12328,
+  "n_positives": 5110,
+  "n_negatives": 7218,
+  "auroc_mean": 0.8912,
+  "auroc_std": 0.0051,
+  "aupr_mean": 0.8542,
+  "aupr_std": 0.0091
+}

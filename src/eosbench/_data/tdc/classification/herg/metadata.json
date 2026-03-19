@@ -1,0 +1,12 @@
+{
+  "source": "tdc",
+  "dataset": "herg",
+  "featurizer": "morgan",
+  "n_samples": 655,
+  "n_positives": 451,
+  "n_negatives": 204,
+  "auroc_mean": 0.8538,
+  "auroc_std": 0.0323,
+  "aupr_mean": 0.9259,
+  "aupr_std": 0.0195
+}

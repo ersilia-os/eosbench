@@ -1,0 +1,12 @@
+{
+  "source": "tdc",
+  "dataset": "skin_reaction",
+  "featurizer": "morgan",
+  "n_samples": 404,
+  "n_positives": 274,
+  "n_negatives": 130,
+  "auroc_mean": 0.7438,
+  "auroc_std": 0.0249,
+  "aupr_mean": 0.8497,
+  "aupr_std": 0.0242
+}

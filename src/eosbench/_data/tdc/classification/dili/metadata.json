@@ -1,0 +1,12 @@
+{
+  "source": "tdc",
+  "dataset": "dili",
+  "featurizer": "morgan",
+  "n_samples": 475,
+  "n_positives": 236,
+  "n_negatives": 239,
+  "auroc_mean": 0.8914,
+  "auroc_std": 0.0385,
+  "aupr_mean": 0.888,
+  "aupr_std": 0.0376
+}

@@ -1,0 +1,12 @@
+{
+  "source": "tdc",
+  "dataset": "clintox",
+  "featurizer": "morgan",
+  "n_samples": 1478,
+  "n_positives": 112,
+  "n_negatives": 1366,
+  "auroc_mean": 0.7627,
+  "auroc_std": 0.0467,
+  "aupr_mean": 0.2576,
+  "aupr_std": 0.0252
+}

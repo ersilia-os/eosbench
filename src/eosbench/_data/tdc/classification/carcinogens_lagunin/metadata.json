@@ -1,0 +1,12 @@
+{
+  "source": "tdc",
+  "dataset": "carcinogens_lagunin",
+  "featurizer": "morgan",
+  "n_samples": 280,
+  "n_positives": 60,
+  "n_negatives": 220,
+  "auroc_mean": 0.8746,
+  "auroc_std": 0.0509,
+  "aupr_mean": 0.7732,
+  "aupr_std": 0.0956
+}

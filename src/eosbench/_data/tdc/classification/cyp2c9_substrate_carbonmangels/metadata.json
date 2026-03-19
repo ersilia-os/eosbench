@@ -1,0 +1,12 @@
+{
+  "source": "tdc",
+  "dataset": "cyp2c9_substrate_carbonmangels",
+  "featurizer": "morgan",
+  "n_samples": 669,
+  "n_positives": 141,
+  "n_negatives": 528,
+  "auroc_mean": 0.6958,
+  "auroc_std": 0.0461,
+  "aupr_mean": 0.4165,
+  "aupr_std": 0.0188
+}
