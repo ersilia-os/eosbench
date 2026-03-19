@@ -15,15 +15,10 @@ CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "eosbench")
 SUPPORTED_FEATURIZATIONS = (None, "morgan", "chemeleon")
 
 __all__ = [
-    "available_datasets",
-    "dataset_catalog",
-    "Dataset",
-    "DatasetInfo",
-    "Splits",
-    "fetch_datasets",
-    "iter_datasets",
-    "list_datasets",
+    "get_catalog",
+    "get_path",
     "load_dataset",
+    "mirror_dataset",
 ]
 
 
@@ -201,7 +196,7 @@ def load_dataset(
     else:
         X = np.load(_fetch(source, task_type, dataset, f"{featurization}.npy"))
 
-    folds_path = _pkg_data_path(source, task_type, dataset, "folds.csv")
+    folds_path = _fetch(source, task_type, dataset, "folds.csv")
     folds = pd.read_csv(folds_path)["fold"].values.astype(int)
 
     meta_path = _pkg_data_path(source, task_type, dataset, "metadata.json")
@@ -268,16 +263,33 @@ def list_datasets(source: str | None = None, task_type: str = "classification") 
     return sorted(result, key=lambda d: (d["source"], d["dataset"]))
 
 
-def available_datasets(
-    source: str | None = None,
-    task_type: str = "classification",
-) -> list[str]:
-    """Return the full sorted list of available dataset names."""
-    datasets = [entry["dataset"] for entry in list_datasets(source=source, task_type=task_type)]
-    return sorted(datasets)
+def get_path(
+    base_dir: str | os.PathLike,
+    dataset_name: str,
+    source: str,
+    task: str,
+) -> Path:
+    """Return the path to a dataset directory within a base directory.
+
+    Parameters
+    ----------
+    base_dir : str or PathLike
+        Root folder (e.g. the ``output_dir`` passed to ``mirror_dataset``).
+    dataset_name : str
+        Dataset name, e.g. "ames".
+    source : str
+        "tdc" or "chembl".
+    task : str
+        "classification" or "regression".
+
+    Returns
+    -------
+    Path
+    """
+    return Path(base_dir) / source / task / dataset_name
 
 
-def dataset_catalog(
+def get_catalog(
     source: str | None = None,
     task_type: str = "classification",
 ) -> pd.DataFrame:
@@ -289,16 +301,16 @@ def dataset_catalog(
         Dataset name.
     source
         Dataset source.
-    samples
-        Number of samples.
+    task
+        Task type ("classification" or "regression").
+    n_tot
+        Total number of samples.
+    n_pos
+        Number of positive samples, if available.
     auroc
         Mean AUROC, if available.
     aupr
         Mean AUPR, if available.
-    n_pos
-        Number of positive samples, if available.
-    n_tot
-        Total number of samples.
     ratio
         Positive class ratio, if available.
     """
@@ -317,11 +329,11 @@ def dataset_catalog(
                 {
                     "name": info.dataset,
                     "source": info.source,
-                    "samples": n_tot,
+                    "task": task_type,
+                    "n_tot": n_tot,
+                    "n_pos": n_pos,
                     "auroc": metadata.get("auroc_mean"),
                     "aupr": metadata.get("aupr_mean"),
-                    "n_pos": n_pos,
-                    "n_tot": n_tot,
                     "ratio": ratio,
                 }
             )
@@ -329,50 +341,49 @@ def dataset_catalog(
     return pd.DataFrame(rows).sort_values(["source", "name"]).reset_index(drop=True)
 
 
-def fetch_datasets(
-    task_names: list[str],
+def mirror_dataset(
+    source: str,
+    dataset: str,
+    featurization: str | None = "morgan",
     output_dir: str | os.PathLike = "data",
     task_type: str = "classification",
-) -> list[Path]:
-    """Fetch datasets into a local folder tree.
+) -> Path:
+    """Mirror a dataset into a local folder.
 
     Parameters
     ----------
-    task_names : list[str]
-        Dataset names to fetch, for example ``["ames", "herg"]``.
+    source : str
+        "tdc" or "chembl".
+    dataset : str
+        Dataset name, e.g. "ames".
+    featurization : str or None
+        "morgan", "chemeleon", or None. Controls which feature matrix is downloaded.
     output_dir : str or PathLike
-        Root folder where datasets should be materialized. Defaults to ``data``.
+        Root folder where the dataset should be written. Defaults to ``data``.
     task_type : str
-        Dataset task type, defaults to ``classification``.
+        "classification" or "regression". Defaults to ``classification``.
 
     Returns
     -------
-    list[Path]
-        Paths to the created dataset directories.
+    Path
+        Path to the created dataset directory.
     """
-    catalog = dataset_catalog(task_type=task_type)
-    created_dirs: list[Path] = []
+    if featurization not in SUPPORTED_FEATURIZATIONS:
+        raise ValueError(
+            f"featurization must be None, 'morgan', or 'chemeleon', got {featurization!r}"
+        )
 
-    for task_name in task_names:
-        matches = catalog.loc[catalog["name"] == task_name, "source"].tolist()
-        if not matches:
-            raise ValueError(f"Unknown dataset: {task_name!r}")
-        if len(matches) > 1:
-            raise ValueError(
-                f"Dataset name {task_name!r} is ambiguous across sources: {matches}"
-            )
+    dataset_dir = _output_dataset_dir(output_dir, source, task_type, dataset)
+    dataset_dir.mkdir(parents=True, exist_ok=True)
 
-        source = matches[0]
-        dataset_dir = _output_dataset_dir(output_dir, source, task_type, task_name)
-        dataset_dir.mkdir(parents=True, exist_ok=True)
+    for filename in ("data.csv", "folds.csv"):
+        _download_to(source, task_type, dataset, filename, dataset_dir / filename)
 
-        for filename in ("data.csv", "morgan.npy", "chemeleon.npy"):
-            _download_to(source, task_type, task_name, filename, dataset_dir / filename)
+    if featurization is not None:
+        _download_to(source, task_type, dataset, f"{featurization}.npy", dataset_dir / f"{featurization}.npy")
 
-        for filename in ("metadata.json", "folds.csv"):
-            src_path = _pkg_data_path(source, task_type, task_name, filename)
-            shutil.copy2(src_path, dataset_dir / filename)
+    metadata_dest = dataset_dir / "metadata.json"
+    if not metadata_dest.exists():
+        shutil.copy2(_pkg_data_path(source, task_type, dataset, "metadata.json"), metadata_dest)
 
-        created_dirs.append(dataset_dir)
-
-    return created_dirs
+    return dataset_dir

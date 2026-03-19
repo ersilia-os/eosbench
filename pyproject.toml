@@ -29,7 +29,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-"eosbench" = ["_data/**/*.json", "_data/**/*.csv"]
+"eosbench" = ["_data/**/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

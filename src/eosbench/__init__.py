@@ -1,15 +1,13 @@
 from .dataset import (
-    available_datasets,
-    dataset_catalog,
-    fetch_datasets,
+    get_catalog,
+    get_path,
     load_dataset,
-    list_datasets,
+    mirror_dataset,
 )
 
 __all__ = [
-    "available_datasets",
-    "dataset_catalog",
-    "fetch_datasets",
+    "get_catalog",
+    "get_path",
     "load_dataset",
-    "list_datasets",
+    "mirror_dataset",
 ]
