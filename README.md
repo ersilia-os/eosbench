@@ -16,6 +16,43 @@ pip install .
 
 ---
 
+## How to use
+
+The typical use case is benchmarking a machine learning model across multiple datasets. The recommended workflow is:
+
+1. **Browse available datasets** to decide which ones you need:
+   ```bash
+   eosbench catalog
+   ```
+
+2. **Navigate to your working directory** and fetch the datasets you want locally:
+   ```bash
+   cd my_project/
+   eosbench fetch --source tdc --dataset ames --featurization morgan
+   eosbench fetch --source tdc --dataset herg --featurization morgan
+   ```
+   This downloads `data.csv`, `folds.csv`, `morgan.npy`, and `metadata.json` into `./tdc/classification/ames/` (and `herg/`). Files are never re-downloaded if already present.
+
+3. **Load and evaluate** in Python:
+   ```python
+   from eosbench import load_dataset
+   from sklearn.metrics import roc_auc_score
+
+   dataset = load_dataset("tdc", "ames", featurization="morgan")
+
+   aurocs = []
+   for train_idx, test_idx in dataset.split():
+       model.fit(dataset.X[train_idx], dataset.y[train_idx])
+       y_hat = model.predict_proba(dataset.X[test_idx])[:, 1]
+       aurocs.append(roc_auc_score(dataset.y[test_idx], y_hat))
+
+   print(f"AUROC: {sum(aurocs)/len(aurocs):.4f}")
+   ```
+
+The `load_dataset` function uses the same local cache (`~/.cache/eosbench/`) as `eosbench fetch`, so files you have already downloaded are reused automatically.
+
+---
+
 ## Datasets
 
 `eosbench` ships with metadata for 20 classification datasets from two sources:
