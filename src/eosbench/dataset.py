@@ -7,6 +7,8 @@ from urllib.error import URLError
 import numpy as np
 import pandas as pd
 
+from .utils.logging import logger
+
 S3_BASE = "https://eosvc-public.s3.amazonaws.com/eosbench/data"
 CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "eosbench")
 
@@ -27,12 +29,17 @@ def _cache_path(source: str, task_type: str, dataset: str, filename: str) -> str
 
 def _fetch(source: str, task_type: str, dataset: str, filename: str) -> str:
     dest = _cache_path(source, task_type, dataset, filename)
-    if not os.path.exists(dest):
+    if os.path.exists(dest):
+        logger.debug(f"Cache hit: {dest}")
+    else:
         url = f"{S3_BASE}/{source}/{task_type}/{dataset}/{filename}"
+        logger.info(f"Downloading {filename} for {source}/{dataset}...")
         try:
             urlretrieve(url, dest)
         except URLError as e:
+            logger.error(f"Failed to download {url}")
             raise RuntimeError(f"Failed to download {url}: {e}") from e
+        logger.success(f"Saved {filename} to cache")
     return dest
 
 
@@ -168,6 +175,8 @@ def load_dataset(
             f"featurization must be None or one of {list(FEATURIZATIONS)}, got {featurization!r}"
         )
 
+    logger.debug(f"Loading dataset {source}/{dataset} (featurization={featurization})")
+
     csv_path = _fetch(source, task_type, dataset, "data.csv")
     df = pd.read_csv(csv_path)
     smiles = df["smiles"].tolist()
@@ -176,8 +185,10 @@ def load_dataset(
 
     if featurization is None:
         X = smiles
+        logger.debug(f"X: {len(X)} SMILES strings")
     else:
         X = np.load(_fetch(source, task_type, dataset, f"{featurization}.npy"))
+        logger.debug(f"X: {X.shape} ({featurization})")
 
     folds_path = _pkg_data_path(source, task_type, dataset, "folds.csv")
     folds = pd.read_csv(folds_path)["fold"].values.astype(int)
@@ -186,6 +197,7 @@ def load_dataset(
     with open(meta_path) as f:
         metadata = json.load(f)
 
+    logger.debug(f"y: {y.shape}, folds: {len(set(folds.tolist()))}-fold CV")
     return Dataset(X, y, folds, metadata)
 
 
