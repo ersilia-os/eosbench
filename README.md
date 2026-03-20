@@ -76,12 +76,12 @@ dataset = load_dataset("tdc", "ames", featurization="morgan")
 |----------|--------|-------------|
 | `source` | `"tdc"`, `"chembl"` | dataset source |
 | `dataset` | e.g. `"ames"` | dataset name |
-| `featurization` | `"morgan"`, `"chemeleon"`, `None` | feature representation; `None` returns raw SMILES |
+| `featurization` | `"morgan"`, `"chemeleon"`, `"rdkit"`, `"cddd"`, `None` | feature representation; `None` returns raw SMILES |
 | `task_type` | `"classification"`, `"regression"` | defaults to `"classification"` |
 
 **Returns** a `Dataset` object with:
 
-- `dataset.X` — NumPy array `(n, 2048)` or list of SMILES strings if `featurization=None`
+- `dataset.X` — NumPy array or list of SMILES strings if `featurization=None`; shapes: `(n, 2048)` for `morgan`/`chemeleon`, `(n, 217)` for `rdkit`, `(n, 512)` for `cddd`
 - `dataset.y` — NumPy array of labels, shape `(n,)`
 - `dataset.split` — cross-validation splits (iterable and indexable)
 - `dataset.metadata` — dict with dataset statistics
@@ -131,6 +131,8 @@ data/
         folds.csv
         morgan.npy      # only if featurization="morgan"
         chemeleon.npy   # only if featurization="chemeleon"
+        rdkit.npy       # only if featurization="rdkit"
+        cddd.npy        # only if featurization="cddd"
         metadata.json
 ```
 
@@ -146,6 +148,64 @@ from eosbench import get_path
 path = get_path("data", "ames", source="tdc", task="classification")
 # Path("data/tdc/classification/ames")
 ```
+---
+
+## CLI
+
+`eosbench` includes a command-line interface installed alongside the package.
+
+### `eosbench catalog`
+
+Print a table of all available datasets with metadata.
+
+```bash
+eosbench catalog                    # all sources
+eosbench catalog --source tdc       # filter by source
+eosbench catalog --source chembl --task classification
+```
+
+### `eosbench info`
+
+Show metadata for a single dataset.
+
+```bash
+eosbench info --source tdc --dataset ames
+```
+
+Output:
+
+```
+        tdc/ames
+┌─────────────┬─────────────────┐
+│ source      │ tdc             │
+│ dataset     │ ames            │
+│ task        │ classification  │
+│ n_samples   │ 7278            │
+│ n_positives │ 3974            │
+│ n_negatives │ 3304            │
+│ auroc       │ 0.9029 ± 0.0079 │
+│ aupr        │ 0.9132 ± 0.0081 │
+└─────────────┴─────────────────┘
+```
+
+### `eosbench fetch`
+
+Download a dataset to a local folder.
+
+```bash
+eosbench fetch --source tdc --dataset ames
+eosbench fetch --source tdc --dataset ames --featurization rdkit --output-dir my_data
+eosbench fetch --source chembl --dataset chembl4649948 --featurization none
+```
+
+| argument | default | description |
+|----------|---------|-------------|
+| `--source` | required | `tdc` or `chembl` |
+| `--dataset` | required | dataset name, e.g. `ames` |
+| `--featurization` | `morgan` | `morgan`, `chemeleon`, `rdkit`, `cddd`, or `none` |
+| `--output-dir` | `.` | root folder to write into |
+| `--task` | `classification` | `classification` or `regression` |
+
 ---
 
 ## About Ersilia
