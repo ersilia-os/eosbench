@@ -215,7 +215,7 @@ def load_dataset(
         X = np.load(_fetch(source, task_type, dataset, f"{featurization}.npy"))
         logger.debug(f"X: {X.shape} ({featurization})")
 
-    folds_path = _pkg_data_path(source, task_type, dataset, "folds.csv")
+    folds_path = _fetch(source, task_type, dataset, "folds.csv")
     folds = pd.read_csv(folds_path)["fold"].values.astype(int)
 
     meta_path = _pkg_data_path(source, task_type, dataset, "metadata.json")
