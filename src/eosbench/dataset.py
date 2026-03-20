@@ -10,6 +10,14 @@ import pandas as pd
 S3_BASE = "https://eosvc-public.s3.amazonaws.com/eosbench/data"
 CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "eosbench")
 
+# Supported featurizations and their output dimensionalities.
+FEATURIZATIONS = {
+    "morgan":   2048,  # Morgan fingerprints (counts), int64
+    "chemeleon": 2048,  # CheMeleon learned embeddings, float32
+    "rdkit":     217,  # RDKit physicochemical descriptors, float64
+    "cddd":      512,  # Continuous Data-Driven Descriptors, float32
+}
+
 
 def _cache_path(source: str, task_type: str, dataset: str, filename: str) -> str:
     path = os.path.join(CACHE_DIR, source, task_type, dataset, filename)
@@ -72,7 +80,8 @@ class Dataset:
     Attributes
     ----------
     X : list[str] or np.ndarray
-        SMILES strings (featurization=None) or fingerprint matrix (n, 2048).
+        SMILES strings (featurization=None), or a descriptor matrix:
+        (n, 2048) for "morgan"/"chemeleon", (n, 217) for "rdkit", (n, 512) for "cddd".
     y : np.ndarray
         Binary activity labels, shape (n,).
     split : Splits
@@ -119,7 +128,13 @@ class DatasetInfo:
         )
 
     def load(self, featurization: str | None = "morgan") -> Dataset:
-        """Download and return the full Dataset."""
+        """Download and return the full Dataset.
+
+        Parameters
+        ----------
+        featurization : str or None
+            "morgan", "chemeleon", "rdkit", "cddd", or None (SMILES).
+        """
         return load_dataset(self.source, self.dataset, featurization, task_type=self.task_type)
 
 
@@ -138,9 +153,9 @@ def load_dataset(
     dataset : str
         Dataset name, e.g. "ames" or "chembl4649948".
     featurization : str or None
-        "morgan", "chemeleon", or None.
+        One of "morgan", "chemeleon", "rdkit", "cddd", or None.
         If None, X is a list of SMILES strings.
-        Otherwise X is a numpy array of shape (n, 2048).
+        "morgan"/"chemeleon" → (n, 2048), "rdkit" → (n, 217), "cddd" → (n, 512).
     task_type : str
         "classification" or "regression" (default: "classification").
 
@@ -148,9 +163,9 @@ def load_dataset(
     -------
     Dataset
     """
-    if featurization not in (None, "morgan", "chemeleon"):
+    if featurization is not None and featurization not in FEATURIZATIONS:
         raise ValueError(
-            f"featurization must be None, 'morgan', or 'chemeleon', got {featurization!r}"
+            f"featurization must be None or one of {list(FEATURIZATIONS)}, got {featurization!r}"
         )
 
     csv_path = _fetch(source, task_type, dataset, "data.csv")
