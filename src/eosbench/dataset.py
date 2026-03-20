@@ -1,8 +1,11 @@
+from collections.abc import Iterator
+import shutil
 import json
 import os
 from importlib import resources
-from urllib.request import urlretrieve
+from pathlib import Path
 from urllib.error import URLError
+from urllib.request import urlretrieve
 
 import numpy as np
 import pandas as pd
@@ -14,10 +17,10 @@ CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "eosbench")
 
 # Supported featurizations and their output dimensionalities.
 FEATURIZATIONS = {
-    "morgan":   2048,  # Morgan fingerprints (counts), int64
+    "morgan":    2048,  # Morgan fingerprints (counts), int64
     "chemeleon": 2048,  # CheMeleon learned embeddings, float32
-    "rdkit":     217,  # RDKit physicochemical descriptors, float64
-    "cddd":      512,  # Continuous Data-Driven Descriptors, float32
+    "rdkit":      217,  # RDKit physicochemical descriptors, float64
+    "cddd":       512,  # Continuous Data-Driven Descriptors, float32
 }
 
 
@@ -27,8 +30,14 @@ def _cache_path(source: str, task_type: str, dataset: str, filename: str) -> str
     return path
 
 
-def _fetch(source: str, task_type: str, dataset: str, filename: str) -> str:
-    dest = _cache_path(source, task_type, dataset, filename)
+def _download_to(
+    source: str,
+    task_type: str,
+    dataset: str,
+    filename: str,
+    dest: str | os.PathLike,
+) -> str:
+    dest = str(dest)
     if os.path.exists(dest):
         logger.debug(f"Cache hit: {dest}")
     else:
@@ -43,11 +52,22 @@ def _fetch(source: str, task_type: str, dataset: str, filename: str) -> str:
     return dest
 
 
+def _fetch(source: str, task_type: str, dataset: str, filename: str) -> str:
+    dest = _cache_path(source, task_type, dataset, filename)
+    return _download_to(source, task_type, dataset, filename, dest)
+
+
 def _pkg_data_path(source: str, task_type: str, dataset: str, filename: str) -> str:
     return str(
         resources.files("eosbench")
         / "_data" / source / task_type / dataset / filename
     )
+
+
+def _output_dataset_dir(
+    output_dir: str | os.PathLike, source: str, task_type: str, dataset: str
+) -> Path:
+    return Path(output_dir) / source / task_type / dataset
 
 
 class Splits:
@@ -90,7 +110,7 @@ class Dataset:
         SMILES strings (featurization=None), or a descriptor matrix:
         (n, 2048) for "morgan"/"chemeleon", (n, 217) for "rdkit", (n, 512) for "cddd".
     y : np.ndarray
-        Binary activity labels, shape (n,).
+        Target values, shape (n,).
     split : Splits
         Cross-validation splits. Iterable and indexable::
 
@@ -134,15 +154,20 @@ class DatasetInfo:
             f"task_type={self.task_type!r}, n_samples={self.metadata.get('n_samples')})"
         )
 
-    def load(self, featurization: str | None = "morgan") -> Dataset:
+    def load(self, featurization: str | None = "morgan") -> "Dataset":
         """Download and return the full Dataset.
 
         Parameters
         ----------
         featurization : str or None
-            "morgan", "chemeleon", "rdkit", "cddd", or None (SMILES).
+            One of "morgan", "chemeleon", "rdkit", "cddd", or None (SMILES).
         """
-        return load_dataset(self.source, self.dataset, featurization, task_type=self.task_type)
+        return load_dataset(
+            self.source,
+            self.dataset,
+            featurization,
+            task_type=self.task_type,
+        )
 
 
 def load_dataset(
@@ -181,7 +206,7 @@ def load_dataset(
     df = pd.read_csv(csv_path)
     smiles = df["smiles"].tolist()
     activity_col = "activity" if "activity" in df.columns else "value"
-    y = df[activity_col].values.astype(int)
+    y = df[activity_col].to_numpy()
 
     if featurization is None:
         X = smiles
@@ -204,7 +229,7 @@ def load_dataset(
 def iter_datasets(
     source: str,
     task_type: str = "classification",
-) -> "Iterator[DatasetInfo]":
+) -> Iterator[DatasetInfo]:
     """Iterate over available datasets for a source and task type.
 
     Yields lightweight :class:`DatasetInfo` objects with metadata only —
@@ -250,3 +275,112 @@ def list_datasets(source: str | None = None, task_type: str = "classification") 
         for info in iter_datasets(src, task_type):
             result.append({"source": src, "dataset": info.dataset, "task_type": task_type})
     return sorted(result, key=lambda d: (d["source"], d["dataset"]))
+
+
+def get_path(
+    base_dir: str | os.PathLike,
+    dataset_name: str,
+    source: str,
+    task: str,
+) -> Path:
+    """Return the path to a dataset directory within a base directory.
+
+    Parameters
+    ----------
+    base_dir : str or PathLike
+        Root folder (e.g. the ``output_dir`` passed to ``mirror_dataset``).
+    dataset_name : str
+        Dataset name, e.g. "ames".
+    source : str
+        "tdc" or "chembl".
+    task : str
+        "classification" or "regression".
+
+    Returns
+    -------
+    Path
+    """
+    return Path(base_dir) / source / task / dataset_name
+
+
+def get_catalog(
+    source: str | None = None,
+    task_type: str = "classification",
+) -> pd.DataFrame:
+    """Return a DataFrame summarizing the available datasets.
+
+    Columns
+    -------
+    name, source, task, n_tot, n_pos, auroc, aupr, ratio
+    """
+    rows = []
+    sources = ["tdc", "chembl"] if source is None else [source]
+    for src in sources:
+        for info in iter_datasets(src, task_type):
+            metadata = info.metadata
+            n_tot = metadata.get("n_samples")
+            n_pos = metadata.get("n_positives")
+            ratio = n_pos / n_tot if n_tot and n_pos is not None else None
+            rows.append({
+                "name":   info.dataset,
+                "source": info.source,
+                "task":   task_type,
+                "n_tot":  n_tot,
+                "n_pos":  n_pos,
+                "auroc":  metadata.get("auroc_mean"),
+                "aupr":   metadata.get("aupr_mean"),
+                "ratio":  ratio,
+            })
+    return pd.DataFrame(rows).sort_values(["source", "name"]).reset_index(drop=True)
+
+
+def mirror_dataset(
+    source: str,
+    dataset: str,
+    featurization: str | None = "morgan",
+    output_dir: str | os.PathLike = "data",
+    task_type: str = "classification",
+) -> Path:
+    """Mirror a dataset into a local folder.
+
+    Parameters
+    ----------
+    source : str
+        "tdc" or "chembl".
+    dataset : str
+        Dataset name, e.g. "ames".
+    featurization : str or None
+        One of "morgan", "chemeleon", "rdkit", "cddd", or None.
+        Controls which feature matrix is downloaded.
+    output_dir : str or PathLike
+        Root folder where the dataset should be written. Defaults to ``data``.
+    task_type : str
+        "classification" or "regression". Defaults to ``classification``.
+
+    Returns
+    -------
+    Path
+        Path to the created dataset directory.
+    """
+    if featurization is not None and featurization not in FEATURIZATIONS:
+        raise ValueError(
+            f"featurization must be None or one of {list(FEATURIZATIONS)}, got {featurization!r}"
+        )
+
+    dataset_dir = _output_dataset_dir(output_dir, source, task_type, dataset)
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+
+    _download_to(source, task_type, dataset, "data.csv", dataset_dir / "data.csv")
+    _download_to(source, task_type, dataset, "folds.csv", dataset_dir / "folds.csv")
+
+    if featurization is not None:
+        _download_to(
+            source, task_type, dataset,
+            f"{featurization}.npy", dataset_dir / f"{featurization}.npy",
+        )
+
+    metadata_dest = dataset_dir / "metadata.json"
+    if not metadata_dest.exists():
+        shutil.copy2(_pkg_data_path(source, task_type, dataset, "metadata.json"), metadata_dest)
+
+    return dataset_dir
