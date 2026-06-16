@@ -1,0 +1,50 @@
+name: Deploy catalog site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/eosbench/_data/**"
+      - "site/**"
+      - "scripts/export_catalog.py"
+      - ".github/workflows/pages.yml"
+  schedule:
+    - cron: "17 6 * * *"   # daily — refreshes S3 availability badges
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Generate catalog.json (with live S3 availability)
+        run: python scripts/export_catalog.py --out site/catalog.json
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

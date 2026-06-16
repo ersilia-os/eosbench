@@ -1,0 +1,46 @@
+{
+  "source": "tdcommons",
+  "dataset": "carcinogens_lagunin",
+  "task": "classification",
+  "last_updated": "2026-06-16",
+  "n_molecules": 280,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "tdc-scaffold",
+    "conserved": true,
+    "stratified": true
+  },
+  "columns": {
+    "carcinogens_lagunin": {
+      "n_samples": 280,
+      "n_positives": 60,
+      "n_negatives": 220,
+      "random_auroc_mean": 0.8320075757575758,
+      "random_auroc_std": 0.054837967767845414,
+      "random_aupr_mean": 0.722678596788602,
+      "random_aupr_std": 0.07258986130025473,
+      "scaffold_auroc": 0.806060606060606,
+      "scaffold_aupr": 0.6365669683851503,
+      "scaffold_split_method": "tdc-scaffold",
+      "scaffold_test_positives": 11,
+      "scaffold_test_negatives": 45,
+      "leaderboard_metric": null,
+      "leaderboard_value": null,
+      "leaderboard_split": null,
+      "leaderboard_source": null,
+      "leaderboard_provider": null
+    }
+  },
+  "auroc_mean": 0.8320075757575758,
+  "aupr_mean": 0.722678596788602,
+  "leaderboard_metric": null,
+  "leaderboard_value": null,
+  "leaderboard_split": null,
+  "leaderboard_source": null,
+  "leaderboard_provider": null
+}

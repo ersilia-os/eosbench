@@ -17,22 +17,20 @@ CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "eosbench")
 
 # Supported featurizations and their output dimensionalities.
 FEATURIZATIONS = {
-    "morgan":    2048,  # Morgan fingerprints (counts), int64
-    "chemeleon": 2048,  # CheMeleon learned embeddings, float32
-    "rdkit":      217,  # RDKit physicochemical descriptors, float64
-    "cddd":       512,  # Continuous Data-Driven Descriptors, float32
+    "morgan": 2048,  # Morgan fingerprints (counts), int64
+    "rdkit":   217,  # RDKit physicochemical descriptors, float64
 }
 
 
-def _cache_path(source: str, task_type: str, dataset: str, filename: str) -> str:
-    path = os.path.join(CACHE_DIR, source, task_type, dataset, filename)
+def _cache_path(source: str, task: str, dataset: str, filename: str) -> str:
+    path = os.path.join(CACHE_DIR, source, task, dataset, filename)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     return path
 
 
 def _download_to(
     source: str,
-    task_type: str,
+    task: str,
     dataset: str,
     filename: str,
     dest: str | os.PathLike,
@@ -41,7 +39,7 @@ def _download_to(
     if os.path.exists(dest):
         logger.debug(f"Cache hit: {dest}")
     else:
-        url = f"{S3_BASE}/{source}/{task_type}/{dataset}/{filename}"
+        url = f"{S3_BASE}/{source}/{task}/{dataset}/{filename}"
         logger.info(f"Downloading {filename} for {source}/{dataset}...")
         try:
             urlretrieve(url, dest)
@@ -52,26 +50,61 @@ def _download_to(
     return dest
 
 
-def _fetch(source: str, task_type: str, dataset: str, filename: str) -> str:
-    dest = _cache_path(source, task_type, dataset, filename)
-    return _download_to(source, task_type, dataset, filename, dest)
+def _copy_from_dir(
+    source: str,
+    task: str,
+    dataset: str,
+    filename: str,
+    dest: str | os.PathLike,
+    from_dir: str | os.PathLike,
+) -> str:
+    """Copy a dataset file from a local mirror directory instead of S3.
+
+    ``from_dir`` is expected to follow the same ``{source}/{task}/{dataset}/{filename}``
+    layout the prepare scripts write under ``data/``. Like :func:`_download_to`, an existing
+    destination is a cache hit and is left untouched.
+    """
+    dest = str(dest)
+    if os.path.exists(dest):
+        logger.debug(f"Cache hit: {dest}")
+        return dest
+    src = Path(from_dir) / source / task / dataset / filename
+    if not src.exists():
+        raise FileNotFoundError(
+            f"{filename} not found for {source}/{task}/{dataset} under --from_dir: {src}"
+        )
+    shutil.copy2(src, dest)
+    logger.info(f"Copied {filename} from {src}")
+    return dest
 
 
-def _pkg_data_path(source: str, task_type: str, dataset: str, filename: str) -> str:
+def _fetch(source: str, task: str, dataset: str, filename: str) -> str:
+    dest = _cache_path(source, task, dataset, filename)
+    return _download_to(source, task, dataset, filename, dest)
+
+
+def _pkg_data_path(source: str, task: str, dataset: str, filename: str) -> str:
     return str(
         resources.files("eosbench")
-        / "_data" / source / task_type / dataset / filename
+        / "_data" / source / task / dataset / filename
     )
 
 
 def _output_dataset_dir(
-    output_dir: str | os.PathLike, source: str, task_type: str, dataset: str
+    output_dir: str | os.PathLike, source: str, task: str, dataset: str
 ) -> Path:
-    return Path(output_dir) / source / task_type / dataset
+    return Path(output_dir) / source / task / dataset
 
 
 class Splits:
-    """Fold-based train/test index splits.
+    """Train/test index splits.
+
+    Backs two split strategies behind a single interface:
+
+    - **Cross-validation** (``from_folds``): an integer fold per sample yields one
+      leave-one-fold-out ``(train_idxs, test_idxs)`` pair per fold.
+    - **Holdout** (``from_holdout``): a per-sample ``"train"``/``"test"`` label yields a
+      single ``(train_idxs, test_idxs)`` pair (``len == 1``).
 
     Supports iteration and direct indexing::
 
@@ -81,12 +114,23 @@ class Splits:
         train_idxs, test_idxs = dataset.split[0]
     """
 
-    def __init__(self, folds: np.ndarray):
+    def __init__(self, splits: list[tuple[np.ndarray, np.ndarray]]):
+        self._splits = splits
+
+    @classmethod
+    def from_folds(cls, folds: np.ndarray) -> "Splits":
+        """Build leave-one-fold-out CV splits from an integer fold array."""
         unique = sorted(set(folds.tolist()))
-        self._splits = [
+        return cls([
             (np.where(folds != k)[0], np.where(folds == k)[0])
             for k in unique
-        ]
+        ])
+
+    @classmethod
+    def from_holdout(cls, labels: np.ndarray) -> "Splits":
+        """Build a single train/test split from per-sample ``"train"``/``"test"`` labels."""
+        labels = np.asarray(labels)
+        return cls([(np.where(labels == "train")[0], np.where(labels == "test")[0])])
 
     def __call__(self):
         return iter(self._splits)
@@ -108,11 +152,12 @@ class Dataset:
     ----------
     X : list[str] or np.ndarray
         SMILES strings (featurization=None), or a descriptor matrix:
-        (n, 2048) for "morgan"/"chemeleon", (n, 217) for "rdkit", (n, 512) for "cddd".
+        (n, 2048) for "morgan", (n, 217) for "rdkit".
     y : np.ndarray
         Target values, shape (n,).
     split : Splits
-        Cross-validation splits. Iterable and indexable::
+        Train/test splits (CV folds or a single holdout, depending on the
+        ``split`` argument to :func:`load_dataset`). Iterable and indexable::
 
             for train_idxs, test_idxs in dataset.split():
                 ...
@@ -122,10 +167,10 @@ class Dataset:
         Dataset metadata including baseline performance metrics.
     """
 
-    def __init__(self, X, y: np.ndarray, folds: np.ndarray, metadata: dict):
+    def __init__(self, X, y: np.ndarray, split: Splits, metadata: dict):
         self.X = X
         self.y = y
-        self.split = Splits(folds)
+        self.split = split
         self.metadata = metadata
 
 
@@ -136,60 +181,139 @@ class DatasetInfo:
     ----------
     source : str
     dataset : str
-    task_type : str
+    task : str
     metadata : dict
     """
 
-    def __init__(self, source: str, task_type: str, dataset: str):
+    def __init__(self, source: str, task: str, dataset: str):
         self.source = source
-        self.task_type = task_type
+        self.task = task
         self.dataset = dataset
-        meta_path = _pkg_data_path(source, task_type, dataset, "metadata.json")
+        meta_path = _pkg_data_path(source, task, dataset, "metadata.json")
         with open(meta_path) as f:
             self.metadata = json.load(f)
+
+    @property
+    def columns(self) -> list[str]:
+        """Label-column (endpoint) names. A single-element list for single-task datasets."""
+        columns = self.metadata.get("columns")
+        return list(columns) if columns else [self.dataset]
 
     def __repr__(self):
         return (
             f"DatasetInfo(source={self.source!r}, dataset={self.dataset!r}, "
-            f"task_type={self.task_type!r}, n_samples={self.metadata.get('n_samples')})"
+            f"task={self.task!r}, n_columns={len(self.columns)})"
         )
 
-    def load(self, featurization: str | None = "morgan") -> "Dataset":
+    def load(
+        self,
+        featurization: str | None = "morgan",
+        split: str = "random",
+        column: str | None = None,
+    ) -> "Dataset":
         """Download and return the full Dataset.
 
         Parameters
         ----------
         featurization : str or None
-            One of "morgan", "chemeleon", "rdkit", "cddd", or None (SMILES).
+            One of "morgan", "rdkit", or None (SMILES).
+        split : str
+            "random" (K-fold CV) or "scaffold" (fixed train/test holdout).
+        column : str or None
+            For multi-column families, which label column to load (see :func:`load_dataset`).
         """
         return load_dataset(
             self.source,
             self.dataset,
             featurization,
-            task_type=self.task_type,
+            task=self.task,
+            split=split,
+            column=column,
         )
+
+
+def _build_splits(folds_df: pd.DataFrame, split: str, mask: np.ndarray | None = None) -> Splits:
+    """Build a :class:`Splits` from a folds.csv frame for the requested strategy.
+
+    Recognises the multi-column schema (``random_fold`` / ``scaffold_split``) and the
+    legacy single ``fold`` column. When ``mask`` (a boolean array over the rows) is given,
+    the split is restricted to the selected rows — used to view a family's conserved split
+    through a single task's labeled rows.
+    """
+    if split == "random":
+        if "random_fold" in folds_df.columns:
+            col = "random_fold"
+        elif "fold" in folds_df.columns:  # legacy datasets
+            col = "fold"
+        else:
+            raise ValueError(
+                "folds.csv has no 'random_fold' or 'fold' column for split='random'"
+            )
+        arr = folds_df[col].values.astype(int)
+        return Splits.from_folds(arr if mask is None else arr[mask])
+    elif split == "scaffold":
+        if "scaffold_split" not in folds_df.columns:
+            raise ValueError(
+                "folds.csv has no 'scaffold_split' column; this dataset has no "
+                "predefined scaffold split (try split='random')"
+            )
+        arr = folds_df["scaffold_split"].astype(str).values
+        return Splits.from_holdout(arr if mask is None else arr[mask])
+    raise ValueError(f"split must be 'random' or 'scaffold', got {split!r}")
+
+
+def _resolve_column(metadata: dict, column: str | None) -> str | None:
+    """Resolve the requested label column against a family's metadata.
+
+    Returns the column name for family-format datasets, or ``None`` for legacy single-task
+    datasets (no ``columns`` block). Raises if a multi-column family is loaded without
+    ``column`` or with an unknown one.
+    """
+    columns = metadata.get("columns")
+    if not columns:  # legacy single-task dataset
+        return None
+    names = list(columns)
+    if column is None:
+        if len(names) == 1:
+            return names[0]
+        raise ValueError(
+            f"dataset {metadata.get('dataset')!r} has multiple columns; pass column=<one of "
+            f"{names}>"
+        )
+    if column not in columns:
+        raise ValueError(f"unknown column {column!r}; available columns: {names}")
+    return column
 
 
 def load_dataset(
     source: str,
     dataset: str,
     featurization: str | None = "morgan",
-    task_type: str = "classification",
+    task: str = "classification",
+    split: str = "random",
+    column: str | None = None,
 ) -> Dataset:
     """Load a benchmark dataset.
 
     Parameters
     ----------
     source : str
-        Dataset source: "tdc" or "chembl".
+        Dataset source, e.g. "tdcommons", "moleculenet", or "polaris".
     dataset : str
-        Dataset name, e.g. "ames" or "chembl4649948".
+        Dataset (family) name, e.g. "ames", "tox21", or "bbbp".
     featurization : str or None
-        One of "morgan", "chemeleon", "rdkit", "cddd", or None.
+        One of "morgan", "rdkit", or None.
         If None, X is a list of SMILES strings.
-        "morgan"/"chemeleon" → (n, 2048), "rdkit" → (n, 217), "cddd" → (n, 512).
-    task_type : str
+        "morgan" → (n, 2048), "rdkit" → (n, 217).
+    task : str
         "classification" or "regression" (default: "classification").
+    split : str
+        "random" for K-fold cross-validation (default) or "scaffold" for a fixed
+        train/test holdout. "random" falls back to the legacy single ``fold`` column.
+    column : str or None
+        For multi-column families, which label column (endpoint) to load. ``None`` selects
+        the sole column of a single-column family; for a multi-column family it raises with
+        the column list. Ignored for legacy single-task datasets.
 
     Returns
     -------
@@ -200,35 +324,58 @@ def load_dataset(
             f"featurization must be None or one of {list(FEATURIZATIONS)}, got {featurization!r}"
         )
 
-    logger.debug(f"Loading dataset {source}/{dataset} (featurization={featurization})")
+    logger.debug(
+        f"Loading dataset {source}/{dataset} "
+        f"(featurization={featurization}, split={split}, column={column})"
+    )
 
-    csv_path = _fetch(source, task_type, dataset, "data.csv")
+    meta_path = _pkg_data_path(source, task, dataset, "metadata.json")
+    with open(meta_path) as f:
+        metadata = json.load(f)
+
+    resolved = _resolve_column(metadata, column)
+
+    csv_path = _fetch(source, task, dataset, "data.csv")
     df = pd.read_csv(csv_path)
-    smiles = df["smiles"].tolist()
-    activity_col = "activity" if "activity" in df.columns else "value"
-    y = df[activity_col].to_numpy()
+
+    if resolved is not None:  # family format: select label column, mask labeled rows
+        mask = df[resolved].notna().to_numpy()
+        y = df.loc[mask, resolved].to_numpy().astype(int)
+        smiles = df.loc[mask, "smiles"].tolist()
+        metadata = {**metadata, "column": resolved, **metadata["columns"][resolved]}
+    else:  # legacy single-task: activity/value column, all rows
+        mask = None
+        activity_col = "activity" if "activity" in df.columns else "value"
+        y = df[activity_col].to_numpy()
+        smiles = df["smiles"].tolist()
 
     if featurization is None:
         X = smiles
         logger.debug(f"X: {len(X)} SMILES strings")
     else:
-        X = np.load(_fetch(source, task_type, dataset, f"{featurization}.npy"))
+        feats = np.load(_fetch(source, task, dataset, f"{featurization}.npy"))
+        X = feats if mask is None else feats[mask]
         logger.debug(f"X: {X.shape} ({featurization})")
 
-    folds_path = _fetch(source, task_type, dataset, "folds.csv")
-    folds = pd.read_csv(folds_path)["fold"].values.astype(int)
+    folds_path = _fetch(source, task, dataset, "folds.csv")
+    splits = _build_splits(pd.read_csv(folds_path), split, mask)
 
-    meta_path = _pkg_data_path(source, task_type, dataset, "metadata.json")
-    with open(meta_path) as f:
-        metadata = json.load(f)
+    logger.debug(f"y: {y.shape}, split={split} ({len(splits)} fold(s))")
+    return Dataset(X, y, splits, metadata)
 
-    logger.debug(f"y: {y.shape}, folds: {len(set(folds.tolist()))}-fold CV")
-    return Dataset(X, y, folds, metadata)
+
+def list_sources() -> list[str]:
+    """Return the available dataset sources by scanning bundled ``_data``."""
+    base = resources.files("eosbench") / "_data"
+    try:
+        return sorted(entry.name for entry in base.iterdir() if entry.is_dir())
+    except (FileNotFoundError, NotADirectoryError):
+        return []
 
 
 def iter_datasets(
     source: str,
-    task_type: str = "classification",
+    task: str = "classification",
 ) -> Iterator[DatasetInfo]:
     """Iterate over available datasets for a source and task type.
 
@@ -238,42 +385,42 @@ def iter_datasets(
     Parameters
     ----------
     source : str
-        "tdc" or "chembl".
-    task_type : str
+        e.g. "tdcommons", "moleculenet", or "polaris".
+    task : str
         "classification" or "regression" (default: "classification").
 
     Yields
     ------
     DatasetInfo
     """
-    base = resources.files("eosbench") / "_data" / source / task_type
+    base = resources.files("eosbench") / "_data" / source / task
     try:
         entries = sorted(entry.name for entry in base.iterdir())
     except (FileNotFoundError, NotADirectoryError):
         return
     for name in entries:
-        yield DatasetInfo(source, task_type, name)
+        yield DatasetInfo(source, task, name)
 
 
-def list_datasets(source: str | None = None, task_type: str = "classification") -> list[dict]:
+def list_datasets(source: str | None = None, task: str = "classification") -> list[dict]:
     """List available datasets.
 
     Parameters
     ----------
     source : str or None
-        Filter by "tdc" or "chembl". If None, returns all.
-    task_type : str
+        Filter by source (e.g. "tdcommons"). If None, returns all.
+    task : str
         "classification" or "regression" (default: "classification").
 
     Returns
     -------
-    list of dicts with keys: source, dataset, task_type.
+    list of dicts with keys: source, dataset, task.
     """
-    sources = ["tdc", "chembl"] if source is None else [source]
+    sources = list_sources() if source is None else [source]
     result = []
     for src in sources:
-        for info in iter_datasets(src, task_type):
-            result.append({"source": src, "dataset": info.dataset, "task_type": task_type})
+        for info in iter_datasets(src, task):
+            result.append({"source": src, "dataset": info.dataset, "task": task})
     return sorted(result, key=lambda d: (d["source"], d["dataset"]))
 
 
@@ -292,7 +439,7 @@ def get_path(
     dataset_name : str
         Dataset name, e.g. "ames".
     source : str
-        "tdc" or "chembl".
+        e.g. "tdcommons", "moleculenet", or "polaris".
     task : str
         "classification" or "regression".
 
@@ -303,35 +450,155 @@ def get_path(
     return Path(base_dir) / source / task / dataset_name
 
 
+def list_columns(source: str, dataset: str, task: str = "classification") -> list[str]:
+    """Return the label-column (endpoint) names of a dataset family.
+
+    A single-element list (the dataset name) for single-task datasets.
+    """
+    return DatasetInfo(source, task, dataset).columns
+
+
+def _ratio(n_tot, n_pos):
+    return n_pos / n_tot if n_tot and n_pos is not None else None
+
+
+def _median_int(values):
+    """Median of a list of counts as an int, or None if there are no values."""
+    vals = [v for v in values if v is not None]
+    return int(round(float(np.median(vals)))) if vals else None
+
+
+def _median_float(values):
+    """Median of a list of floats, or None if there are no (non-None) values."""
+    vals = [v for v in values if v is not None]
+    return float(np.median(vals)) if vals else None
+
+
+# Per-task catalog metric contract. Each metric maps a display column to the
+# metadata keys holding its value: (display name, collapsed family key, per-column key).
+# Regression keys are forward-looking — no regression data is bundled yet; the prep
+# pipeline must populate these names when it gains a regression baseline.
+TASK_METRICS = {
+    "classification": {
+        "metrics": [("auroc", "auroc_mean", "random_auroc_mean"),
+                    ("auprc", "aupr_mean",  "random_aupr_mean")],
+        "show_class_balance": True,   # include n_pos and ratio
+    },
+    "regression": {
+        "metrics": [("rmse", "rmse_mean", "random_rmse_mean"),
+                    ("r2",   "r2_mean",   "random_r2_mean")],
+        "show_class_balance": False,
+    },
+}
+
+
+def _task_metric_spec(task: str) -> dict:
+    """Metric spec for a task type, falling back to classification."""
+    return TASK_METRICS.get(task, TASK_METRICS["classification"])
+
+
+def catalog_columns(task: str = "classification", expand: bool = False) -> list[str]:
+    """Column order of a ``get_catalog`` frame for the given task and view."""
+    spec = _task_metric_spec(task)
+    cols = ["name", "source", "task", "column" if expand else "n_columns", "n_tot"]
+    if spec["show_class_balance"]:
+        cols.append("n_pos")
+    cols += [m[0] for m in spec["metrics"]]
+    if spec["show_class_balance"]:
+        cols.append("ratio")
+    # Published-leaderboard reference (best reported model), where known.
+    cols += ["leaderboard_score", "leaderboard_metric"]
+    cols.append("last_updated")
+    return cols
+
+
 def get_catalog(
     source: str | None = None,
-    task_type: str = "classification",
+    task: str = "classification",
+    expand: bool = False,
 ) -> pd.DataFrame:
     """Return a DataFrame summarizing the available datasets.
 
-    Columns
-    -------
-    name, source, task, n_tot, n_pos, auroc, aupr, ratio
+    By default there is **one row per dataset family** (multi-column families collapse to a
+    single row with ``n_columns``; metrics are averaged over the columns, while ``n_tot`` and
+    ``n_pos`` report the **median** per-column count). Pass ``expand=True`` for **one row per
+    label column**.
+
+    The metric columns and class-balance columns depend on ``task``. Every view also
+    carries ``leaderboard_score``/``leaderboard_metric`` (the best published result, where
+    known — currently MoleculeNet only; blank elsewhere):
+
+    Classification (collapsed) — name, source, task, n_columns, n_tot, n_pos,
+        auroc, auprc, ratio, leaderboard_score, leaderboard_metric, last_updated.
+        ``expand=True`` swaps ``n_columns``→``column``.
+    Regression (collapsed) — name, source, task, n_columns, n_tot, rmse, r2,
+        leaderboard_score, leaderboard_metric, last_updated (no n_pos/ratio).
+        ``expand=True`` swaps ``n_columns``→``column``.
     """
+    spec = _task_metric_spec(task)
+    metrics = spec["metrics"]
+    balance = spec["show_class_balance"]
+    cols = catalog_columns(task, expand)
+
     rows = []
-    sources = ["tdc", "chembl"] if source is None else [source]
+    sources = list_sources() if source is None else [source]
     for src in sources:
-        for info in iter_datasets(src, task_type):
-            metadata = info.metadata
-            n_tot = metadata.get("n_samples")
-            n_pos = metadata.get("n_positives")
-            ratio = n_pos / n_tot if n_tot and n_pos is not None else None
-            rows.append({
-                "name":   info.dataset,
-                "source": info.source,
-                "task":   task_type,
-                "n_tot":  n_tot,
-                "n_pos":  n_pos,
-                "auroc":  metadata.get("auroc_mean"),
-                "aupr":   metadata.get("aupr_mean"),
-                "ratio":  ratio,
-            })
-    return pd.DataFrame(rows).sort_values(["source", "name"]).reset_index(drop=True)
+        for info in iter_datasets(src, task):
+            meta = info.metadata
+            columns = meta.get("columns")
+            last_updated = meta.get("last_updated")
+
+            if expand:
+                # family columns, or a single synthetic column for legacy datasets.
+                items = columns.items() if columns else [(info.dataset, meta)]
+                for name, c in items:
+                    n_tot, n_pos = c.get("n_samples"), c.get("n_positives")
+                    row = {
+                        "name": info.dataset, "source": src, "task": task,
+                        "column": name, "n_tot": n_tot,
+                        "leaderboard_score": c.get("leaderboard_value"),
+                        "leaderboard_metric": c.get("leaderboard_metric"),
+                        "last_updated": last_updated,
+                    }
+                    for disp, collapsed_key, percol_key in metrics:
+                        row[disp] = c.get(percol_key, c.get(collapsed_key))
+                    if balance:
+                        row["n_pos"] = n_pos
+                        row["ratio"] = _ratio(n_tot, n_pos)
+                    rows.append(row)
+                continue
+
+            # collapsed: one row per family. For families, n_tot/n_pos/ratio summarize the
+            # per-column values by their median (these are hidden in the collapsed view, so
+            # the median is the single most representative value); single-column families
+            # trivially reduce to their one column, and legacy datasets use their own counts.
+            if columns:
+                vals = columns.values()
+                n_tot = _median_int(c.get("n_samples") for c in vals)
+                n_pos = _median_int(c.get("n_positives") for c in vals)
+                ratio = _median_float(_ratio(c.get("n_samples"), c.get("n_positives")) for c in vals)
+            else:
+                n_tot = meta.get("n_samples")
+                n_pos = meta.get("n_positives")
+                ratio = _ratio(n_tot, n_pos)
+            row = {
+                "name": info.dataset, "source": src, "task": task,
+                "n_columns": len(info.columns), "n_tot": n_tot,
+                "leaderboard_score": meta.get("leaderboard_value"),
+                "leaderboard_metric": meta.get("leaderboard_metric"),
+                "last_updated": last_updated,
+            }
+            for disp, collapsed_key, _percol_key in metrics:
+                row[disp] = meta.get(collapsed_key)
+            if balance:
+                row["n_pos"] = n_pos
+                row["ratio"] = ratio
+            rows.append(row)
+
+    if not rows:
+        return pd.DataFrame(columns=cols)
+    sort_keys = ["source", "name", "column"] if expand else ["source", "name"]
+    return pd.DataFrame(rows)[cols].sort_values(sort_keys).reset_index(drop=True)
 
 
 def mirror_dataset(
@@ -339,23 +606,29 @@ def mirror_dataset(
     dataset: str,
     featurization: str | None = "morgan",
     output_dir: str | os.PathLike = "data",
-    task_type: str = "classification",
+    task: str = "classification",
+    from_dir: str | os.PathLike | None = None,
 ) -> Path:
     """Mirror a dataset into a local folder.
 
     Parameters
     ----------
     source : str
-        "tdc" or "chembl".
+        e.g. "tdcommons", "moleculenet", or "polaris".
     dataset : str
         Dataset name, e.g. "ames".
     featurization : str or None
-        One of "morgan", "chemeleon", "rdkit", "cddd", or None.
+        One of "morgan", "rdkit", or None.
         Controls which feature matrix is downloaded.
     output_dir : str or PathLike
         Root folder where the dataset should be written. Defaults to ``data``.
-    task_type : str
+    task : str
         "classification" or "regression". Defaults to ``classification``.
+    from_dir : str or PathLike or None
+        When given, copy the dataset files from this local directory (laid out as
+        ``{from_dir}/{source}/{task}/{dataset}/{filename}``, the same layout the prepare
+        scripts write under ``data/``) instead of downloading from S3. Useful for testing a
+        freshly prepared source before uploading it.
 
     Returns
     -------
@@ -367,20 +640,34 @@ def mirror_dataset(
             f"featurization must be None or one of {list(FEATURIZATIONS)}, got {featurization!r}"
         )
 
-    dataset_dir = _output_dataset_dir(output_dir, source, task_type, dataset)
+    dataset_dir = _output_dataset_dir(output_dir, source, task, dataset)
     dataset_dir.mkdir(parents=True, exist_ok=True)
 
-    _download_to(source, task_type, dataset, "data.csv", dataset_dir / "data.csv")
-    _download_to(source, task_type, dataset, "folds.csv", dataset_dir / "folds.csv")
+    def fetch(filename: str) -> None:
+        dest = dataset_dir / filename
+        if from_dir is not None:
+            _copy_from_dir(source, task, dataset, filename, dest, from_dir)
+        else:
+            _download_to(source, task, dataset, filename, dest)
+
+    fetch("data.csv")
+    fetch("folds.csv")
 
     if featurization is not None:
-        _download_to(
-            source, task_type, dataset,
-            f"{featurization}.npy", dataset_dir / f"{featurization}.npy",
-        )
+        fetch(f"{featurization}.npy")
 
+    # metadata.json (skip-if-exists, like the data files): prefer a copy from --from_dir,
+    # else fall back to the packaged metadata.
     metadata_dest = dataset_dir / "metadata.json"
     if not metadata_dest.exists():
-        shutil.copy2(_pkg_data_path(source, task_type, dataset, "metadata.json"), metadata_dest)
+        local_metadata = (
+            Path(from_dir) / source / task / dataset / "metadata.json"
+            if from_dir is not None
+            else None
+        )
+        if local_metadata is not None and local_metadata.exists():
+            shutil.copy2(local_metadata, metadata_dest)
+        else:
+            shutil.copy2(_pkg_data_path(source, task, dataset, "metadata.json"), metadata_dest)
 
     return dataset_dir

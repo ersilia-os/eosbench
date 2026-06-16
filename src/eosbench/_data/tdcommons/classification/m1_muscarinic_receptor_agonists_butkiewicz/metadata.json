@@ -1,0 +1,46 @@
+{
+  "source": "tdcommons",
+  "dataset": "m1_muscarinic_receptor_agonists_butkiewicz",
+  "task": "classification",
+  "last_updated": "2026-06-16",
+  "n_molecules": 61829,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "tdc-scaffold",
+    "conserved": true,
+    "stratified": true
+  },
+  "columns": {
+    "m1_muscarinic_receptor_agonists_butkiewicz": {
+      "n_samples": 61829,
+      "n_positives": 187,
+      "n_negatives": 61642,
+      "random_auroc_mean": 0.6817937278291579,
+      "random_auroc_std": 0.04098784068729069,
+      "random_aupr_mean": 0.11117316833636773,
+      "random_aupr_std": 0.017511121141507824,
+      "scaffold_auroc": 0.6781560788672385,
+      "scaffold_aupr": 0.1505483584430428,
+      "scaffold_split_method": "tdc-scaffold",
+      "scaffold_test_positives": 28,
+      "scaffold_test_negatives": 12339,
+      "leaderboard_metric": null,
+      "leaderboard_value": null,
+      "leaderboard_split": null,
+      "leaderboard_source": null,
+      "leaderboard_provider": null
+    }
+  },
+  "auroc_mean": 0.6817937278291579,
+  "aupr_mean": 0.11117316833636773,
+  "leaderboard_metric": null,
+  "leaderboard_value": null,
+  "leaderboard_split": null,
+  "leaderboard_source": null,
+  "leaderboard_provider": null
+}

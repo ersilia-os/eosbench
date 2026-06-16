@@ -1,0 +1,46 @@
+{
+  "source": "tdcommons",
+  "dataset": "herg_karim",
+  "task": "classification",
+  "last_updated": "2026-06-16",
+  "n_molecules": 13445,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "tdc-scaffold",
+    "conserved": true,
+    "stratified": true
+  },
+  "columns": {
+    "herg_karim": {
+      "n_samples": 13445,
+      "n_positives": 6718,
+      "n_negatives": 6727,
+      "random_auroc_mean": 0.9288159106446969,
+      "random_auroc_std": 0.0035160818493922634,
+      "random_aupr_mean": 0.9310981742909135,
+      "random_aupr_std": 0.005595171171836101,
+      "scaffold_auroc": 0.8758672660655354,
+      "scaffold_aupr": 0.8809785173288918,
+      "scaffold_split_method": "tdc-scaffold",
+      "scaffold_test_positives": 1327,
+      "scaffold_test_negatives": 1363,
+      "leaderboard_metric": null,
+      "leaderboard_value": null,
+      "leaderboard_split": null,
+      "leaderboard_source": null,
+      "leaderboard_provider": null
+    }
+  },
+  "auroc_mean": 0.9288159106446969,
+  "aupr_mean": 0.9310981742909135,
+  "leaderboard_metric": null,
+  "leaderboard_value": null,
+  "leaderboard_split": null,
+  "leaderboard_source": null,
+  "leaderboard_provider": null
+}

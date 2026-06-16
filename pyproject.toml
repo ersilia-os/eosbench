@@ -26,6 +26,13 @@ dev = [
   "black",
   "flake8",
 ]
+# Tooling for building new datasets (scripts/prepare_*.py). Not needed to consume eosbench.
+prepare = [
+  "rdkit",
+  "scikit-learn",
+  "polaris-lib",
+  "PyTDC",
+]
 
 [project.scripts]
 eosbench = "eosbench.cli.main:main"

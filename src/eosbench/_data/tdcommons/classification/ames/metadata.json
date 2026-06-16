@@ -1,0 +1,46 @@
+{
+  "source": "tdcommons",
+  "dataset": "ames",
+  "task": "classification",
+  "last_updated": "2026-06-16",
+  "n_molecules": 7278,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "tdc-scaffold",
+    "conserved": true,
+    "stratified": true
+  },
+  "columns": {
+    "ames": {
+      "n_samples": 7278,
+      "n_positives": 3974,
+      "n_negatives": 3304,
+      "random_auroc_mean": 0.9090590300573744,
+      "random_auroc_std": 0.006995494888506955,
+      "random_aupr_mean": 0.919880542328389,
+      "random_aupr_std": 0.00656758336019973,
+      "scaffold_auroc": 0.8506667449920695,
+      "scaffold_aupr": 0.8933082902214604,
+      "scaffold_split_method": "tdc-scaffold",
+      "scaffold_test_positives": 870,
+      "scaffold_test_negatives": 587,
+      "leaderboard_metric": "AUROC",
+      "leaderboard_value": 0.871,
+      "leaderboard_split": "scaffold",
+      "leaderboard_source": "ZairaChem, Polaris TDC ADMET leaderboard",
+      "leaderboard_provider": "polaris"
+    }
+  },
+  "auroc_mean": 0.9090590300573744,
+  "aupr_mean": 0.919880542328389,
+  "leaderboard_metric": "AUROC",
+  "leaderboard_value": 0.871,
+  "leaderboard_split": "scaffold",
+  "leaderboard_source": "ZairaChem, Polaris TDC ADMET leaderboard",
+  "leaderboard_provider": "polaris"
+}

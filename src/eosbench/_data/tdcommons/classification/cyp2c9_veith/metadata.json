@@ -1,0 +1,46 @@
+{
+  "source": "tdcommons",
+  "dataset": "cyp2c9_veith",
+  "task": "classification",
+  "last_updated": "2026-06-16",
+  "n_molecules": 12092,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "tdc-scaffold",
+    "conserved": true,
+    "stratified": true
+  },
+  "columns": {
+    "cyp2c9_veith": {
+      "n_samples": 12092,
+      "n_positives": 4045,
+      "n_negatives": 8047,
+      "random_auroc_mean": 0.8967882553739959,
+      "random_auroc_std": 0.00526747310631781,
+      "random_aupr_mean": 0.8058163177266959,
+      "random_aupr_std": 0.008172503643150288,
+      "scaffold_auroc": 0.8791664369590385,
+      "scaffold_aupr": 0.7583913811283522,
+      "scaffold_split_method": "tdc-scaffold",
+      "scaffold_test_positives": 770,
+      "scaffold_test_negatives": 1649,
+      "leaderboard_metric": "AUPRC",
+      "leaderboard_value": 0.859,
+      "leaderboard_split": "scaffold",
+      "leaderboard_source": "MapLight + GNN, Polaris TDC ADMET leaderboard",
+      "leaderboard_provider": "polaris"
+    }
+  },
+  "auroc_mean": 0.8967882553739959,
+  "aupr_mean": 0.8058163177266959,
+  "leaderboard_metric": "AUPRC",
+  "leaderboard_value": 0.859,
+  "leaderboard_split": "scaffold",
+  "leaderboard_source": "MapLight + GNN, Polaris TDC ADMET leaderboard",
+  "leaderboard_provider": "polaris"
+}

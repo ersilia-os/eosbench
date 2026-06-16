@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>eosbench catalog</title>
+<style>
+  :root { --fg:#1b1f24; --muted:#6a737d; --line:#e1e4e8; --accent:#2563eb; --bg:#fff;
+          --ok-bg:#e6f4ea; --ok-fg:#1a7f37; --pend-bg:#eceff1; --pend-fg:#6a737d; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         color:var(--fg); background:var(--bg); }
+  header { padding:24px 28px 12px; border-bottom:1px solid var(--line); }
+  h1 { margin:0 0 4px; font-size:22px; }
+  .sub { color:var(--muted); font-size:13px; }
+  .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:14px 28px; }
+  .controls input, .controls select { padding:7px 9px; border:1px solid var(--line); border-radius:6px; font:inherit; }
+  .controls input[type=search] { min-width:240px; flex:1 1 240px; }
+  .wrap { padding:0 28px 40px; overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+  th, td { padding:7px 10px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { position:sticky; top:0; background:var(--bg); cursor:pointer; user-select:none; font-weight:600; }
+  th .arrow { color:var(--accent); font-size:11px; }
+  td.num, th.num { text-align:right; }
+  tr:hover td { background:#f6f8fa; }
+  .name { font-weight:600; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; }
+  .badge.ok { background:var(--ok-bg); color:var(--ok-fg); }
+  .badge.pending { background:var(--pend-bg); color:var(--pend-fg); }
+  .copy { border:1px solid var(--line); background:#fff; border-radius:6px; padding:3px 8px; cursor:pointer; font:inherit; color:var(--accent); }
+  .copy:hover { background:#f0f4ff; }
+  .muted { color:var(--muted); }
+  footer { padding:16px 28px; color:var(--muted); font-size:12px; border-top:1px solid var(--line); }
+  code { background:#f0f1f3; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>eosbench catalog</h1>
+  <div class="sub" id="summary">Loading…</div>
+</header>
+
+<div class="controls">
+  <input type="search" id="q" placeholder="Search dataset, source, or column…" />
+  <select id="source"><option value="">All sources</option></select>
+  <select id="task"><option value="">All tasks</option></select>
+  <select id="avail">
+    <option value="">Any availability</option>
+    <option value="yes">Available on S3</option>
+    <option value="no">Pending upload</option>
+  </select>
+</div>
+
+<div class="wrap">
+  <table id="tbl">
+    <thead><tr id="head"></tr></thead>
+    <tbody id="body"></tbody>
+  </table>
+</div>
+
+<footer id="footer"></footer>
+
+<script>
+// Columns: key in the record, header label, numeric?, formatter.
+const COLS = [
+  { k:"name",   t:"dataset",  cls:"name" },
+  { k:"source", t:"source" },
+  { k:"task",   t:"task" },
+  { k:"n_columns", t:"#cols", num:true },
+  { k:"n_tot",  t:"n_tot",  num:true, fmt:fmtInt },
+  { k:"n_pos",  t:"n_pos",  num:true, fmt:fmtInt },
+  { k:"auroc",  t:"auroc",  num:true, fmt:fmt3 },
+  { k:"auprc",  t:"auprc",  num:true, fmt:fmt3 },
+  { k:"ratio",  t:"ratio",  num:true, fmt:fmt3 },
+  { k:"rmse",   t:"rmse",   num:true, fmt:fmt3 },
+  { k:"r2",     t:"r2",     num:true, fmt:fmt3 },
+  { k:"leaderboard_score", t:"lb_score", num:true, fmt:fmt3 },
+  { k:"leaderboard_metric", t:"lb_metric" },
+  { k:"last_updated", t:"updated" },
+  { k:"available", t:"on S3", fmt:fmtBadge },
+  { k:"fetch_cmd", t:"fetch", fmt:fmtCopy },
+];
+
+function fmtInt(v){ return v==null ? "–" : Number(v).toLocaleString(); }
+function fmt3(v){ return v==null ? "–" : Number(v).toFixed(3); }
+function fmtBadge(v){ return v ? '<span class="badge ok">available</span>'
+                               : '<span class="badge pending">pending</span>'; }
+function fmtCopy(v){ return '<button class="copy" data-cmd="'+escapeAttr(v)+'">copy</button>'; }
+function escapeHtml(s){ return String(s).replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function escapeAttr(s){ return String(s).replace(/"/g,"&quot;"); }
+
+let DATA = [];
+let sortKey = "source", sortDir = 1;
+
+fetch("catalog.json").then(r => r.json()).then(payload => {
+  DATA = payload.datasets;
+  document.getElementById("summary").innerHTML =
+    `${payload.n_datasets} datasets · <strong>${payload.n_available}</strong> available on S3 · ` +
+    `generated ${escapeHtml(payload.generated_at)}`;
+  document.getElementById("footer").innerHTML =
+    `Source of truth: bundled dataset metadata. Availability is a live HEAD check against ` +
+    `<code>${escapeHtml(payload.s3_base)}</code>. Rebuilt on every push and daily.`;
+  fillSelect("source", uniq(DATA.map(d=>d.source)));
+  fillSelect("task", uniq(DATA.map(d=>d.task)));
+  buildHead();
+  render();
+}).catch(e => {
+  document.getElementById("summary").textContent = "Failed to load catalog.json: " + e;
+});
+
+function uniq(a){ return [...new Set(a)].sort(); }
+function fillSelect(id, vals){
+  const sel = document.getElementById(id);
+  for (const v of vals){ const o=document.createElement("option"); o.value=v; o.textContent=v; sel.appendChild(o); }
+}
+
+function buildHead(){
+  const tr = document.getElementById("head");
+  tr.innerHTML = "";
+  for (const c of COLS){
+    const th = document.createElement("th");
+    if (c.num) th.className = "num";
+    th.dataset.k = c.k;
+    th.innerHTML = escapeHtml(c.t) + ' <span class="arrow"></span>';
+    if (c.k !== "fetch_cmd") th.addEventListener("click", () => onSort(c.k));
+    tr.appendChild(th);
+  }
+}
+
+function onSort(k){
+  if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; }
+  render();
+}
+
+function getFilters(){
+  return {
+    q: document.getElementById("q").value.trim().toLowerCase(),
+    source: document.getElementById("source").value,
+    task: document.getElementById("task").value,
+    avail: document.getElementById("avail").value,
+  };
+}
+
+function render(){
+  const f = getFilters();
+  let rows = DATA.filter(d => {
+    if (f.source && d.source !== f.source) return false;
+    if (f.task && d.task !== f.task) return false;
+    if (f.avail === "yes" && !d.available) return false;
+    if (f.avail === "no" && d.available) return false;
+    if (f.q){
+      const hay = (d.name+" "+d.source+" "+(d.columns||[]).join(" ")).toLowerCase();
+      if (!hay.includes(f.q)) return false;
+    }
+    return true;
+  });
+
+  rows.sort((a,b) => cmp(a[sortKey], b[sortKey]) * sortDir);
+
+  const body = document.getElementById("body");
+  body.innerHTML = rows.map(d =>
+    "<tr>" + COLS.map(c => {
+      const v = d[c.k];
+      const val = c.fmt ? c.fmt(v) : (v==null ? "–" : escapeHtml(v));
+      return `<td class="${c.num?"num ":""}${c.cls||""}" title="${c.k==="name"?escapeAttr((d.columns||[]).join(", ")):""}">${val}</td>`;
+    }).join("") + "</tr>"
+  ).join("");
+
+  // sort arrows
+  document.querySelectorAll("#head th").forEach(th => {
+    const a = th.querySelector(".arrow");
+    a.textContent = (th.dataset.k === sortKey) ? (sortDir>0 ? "▲" : "▼") : "";
+  });
+
+  document.querySelectorAll(".copy").forEach(btn => btn.addEventListener("click", () => {
+    navigator.clipboard.writeText(btn.dataset.cmd);
+    const old = btn.textContent; btn.textContent = "copied!";
+    setTimeout(() => btn.textContent = old, 1200);
+  }));
+}
+
+function cmp(a,b){
+  const an = a==null, bn = b==null;
+  if (an && bn) return 0; if (an) return 1; if (bn) return -1;  // nulls last
+  if (typeof a === "number" && typeof b === "number") return a-b;
+  return String(a).localeCompare(String(b));
+}
+
+["q","source","task","avail"].forEach(id =>
+  document.getElementById(id).addEventListener("input", render));
+</script>
+</body>
+</html>

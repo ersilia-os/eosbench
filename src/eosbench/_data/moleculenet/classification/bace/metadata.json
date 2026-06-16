@@ -1,0 +1,48 @@
+{
+  "source": "moleculenet",
+  "dataset": "bace",
+  "task": "classification",
+  "last_updated": "2026-06-16",
+  "n_molecules": 1513,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "stratified-murcko",
+    "conserved": true,
+    "stratified": true
+  },
+  "columns": {
+    "bace": {
+      "n_samples": 1513,
+      "n_positives": 691,
+      "n_negatives": 822,
+      "random_auroc_mean": null,
+      "random_auroc_std": null,
+      "random_aupr_mean": null,
+      "random_aupr_std": null,
+      "scaffold_auroc": null,
+      "scaffold_aupr": null,
+      "scaffold_split_method": "stratified-murcko",
+      "scaffold_test_positives": 81,
+      "scaffold_test_negatives": 72,
+      "leaderboard_metric": "ROC-AUC",
+      "leaderboard_value": 0.806,
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model",
+      "description": "Inhibition of human beta-secretase 1 (BACE-1), an Alzheimer's drug target.",
+      "description_source": "MoleculeNet BACE (Subramanian et al. 2016)",
+      "leaderboard_split": "scaffold",
+      "leaderboard_provider": "moleculenet"
+    }
+  },
+  "auroc_mean": null,
+  "aupr_mean": null,
+  "leaderboard_metric": "ROC-AUC",
+  "leaderboard_value": 0.806,
+  "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model",
+  "leaderboard_split": "scaffold",
+  "leaderboard_provider": "moleculenet"
+}

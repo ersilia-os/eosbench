@@ -1,0 +1,48 @@
+{
+  "source": "moleculenet",
+  "dataset": "bbbp",
+  "task": "classification",
+  "last_updated": "2026-06-16",
+  "n_molecules": 2039,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "stratified-murcko",
+    "conserved": true,
+    "stratified": true
+  },
+  "columns": {
+    "bbbp": {
+      "n_samples": 2039,
+      "n_positives": 1560,
+      "n_negatives": 479,
+      "random_auroc_mean": null,
+      "random_auroc_std": null,
+      "random_aupr_mean": null,
+      "random_aupr_std": null,
+      "scaffold_auroc": null,
+      "scaffold_aupr": null,
+      "scaffold_split_method": "stratified-murcko",
+      "scaffold_test_positives": 165,
+      "scaffold_test_negatives": 40,
+      "leaderboard_metric": "ROC-AUC",
+      "leaderboard_value": 0.729,
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model",
+      "description": "Blood-brain barrier penetration: 1 if the molecule crosses the BBB.",
+      "description_source": "MoleculeNet BBBP (Martins et al. 2012)",
+      "leaderboard_split": "scaffold",
+      "leaderboard_provider": "moleculenet"
+    }
+  },
+  "auroc_mean": null,
+  "aupr_mean": null,
+  "leaderboard_metric": "ROC-AUC",
+  "leaderboard_value": 0.729,
+  "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model",
+  "leaderboard_split": "scaffold",
+  "leaderboard_provider": "moleculenet"
+}

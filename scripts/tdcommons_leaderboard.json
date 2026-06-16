@@ -1,0 +1,17 @@
+{
+  "_comment": "Curated leaderboard references for tdcommons datasets. PRECEDENCE: prefer the POLARIS HUB (polarishub.io, owner 'tdcommons') over TDC's own leaderboard (which can contain errors); fall back to TDC's leaderboard only where Polaris has no entry. Each entry's 'provider' records which leaderboard the score came from ('polaris' or 'tdc'). Rank-1 mean scores; treat as references, not ground truth (leaderboards are dynamic). Each task keeps its official ranking metric — AUROC for most, AUPRC for the imbalanced CYP inhibition/substrate tasks (note CYP3A4_Substrate uses AUROC). 'split' is the scaffold split the score is reported on. NOTE: TDC's only single-molecule leaderboard IS the ADMET Benchmark Group, which Polaris mirrors, so there are currently no 'tdc'-provider fallbacks to add — datasets outside the ADMET Benchmark Group (e.g. hiv, cyp1a2_veith, cyp2c19_veith, carcinogens_lagunin, skin_reaction, the SARS-CoV-2 / Butkiewicz HTS sets) are on no leaderboard and stay blank. Keyed by tdcommons dataset slug.",
+  "_snapshot": "2026-06-16",
+  "ames":                            {"metric": "AUROC", "value": 0.871, "split": "scaffold", "provider": "polaris", "source": "ZairaChem, Polaris TDC ADMET leaderboard"},
+  "bbb_martins":                     {"metric": "AUROC", "value": 0.924, "split": "scaffold", "provider": "polaris", "source": "MiniMol, Polaris TDC ADMET leaderboard"},
+  "bioavailability_ma":              {"metric": "AUROC", "value": 0.942, "split": "scaffold", "provider": "polaris", "source": "MiniMol, Polaris TDC ADMET leaderboard"},
+  "cyp2c9_substrate_carbonmangels":  {"metric": "AUPRC", "value": 0.474, "split": "scaffold", "provider": "polaris", "source": "MiniMol, Polaris TDC ADMET leaderboard"},
+  "cyp2c9_veith":                    {"metric": "AUPRC", "value": 0.859, "split": "scaffold", "provider": "polaris", "source": "MapLight + GNN, Polaris TDC ADMET leaderboard"},
+  "cyp2d6_substrate_carbonmangels":  {"metric": "AUPRC", "value": 0.736, "split": "scaffold", "provider": "polaris", "source": "ContextPred, Polaris TDC ADMET leaderboard"},
+  "cyp2d6_veith":                    {"metric": "AUPRC", "value": 0.790, "split": "scaffold", "provider": "polaris", "source": "MapLight + GNN, Polaris TDC ADMET leaderboard"},
+  "cyp3a4_substrate_carbonmangels":  {"metric": "AUROC", "value": 0.667, "split": "scaffold", "provider": "polaris", "source": "CFA, Polaris TDC ADMET leaderboard"},
+  "cyp3a4_veith":                    {"metric": "AUPRC", "value": 0.916, "split": "scaffold", "provider": "polaris", "source": "MapLight + GNN, Polaris TDC ADMET leaderboard"},
+  "dili":                            {"metric": "AUROC", "value": 0.956, "split": "scaffold", "provider": "polaris", "source": "MiniMol, Polaris TDC ADMET leaderboard"},
+  "herg":                            {"metric": "AUROC", "value": 0.880, "split": "scaffold", "provider": "polaris", "source": "MapLight + GNN, Polaris TDC ADMET leaderboard"},
+  "hia_hou":                         {"metric": "AUROC", "value": 0.993, "split": "scaffold", "provider": "polaris", "source": "MiniMol, Polaris TDC ADMET leaderboard"},
+  "pgp_broccatelli":                 {"metric": "AUROC", "value": 0.938, "split": "scaffold", "provider": "polaris", "source": "MapLight + GNN, Polaris TDC ADMET leaderboard"}
+}

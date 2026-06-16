@@ -1,0 +1,46 @@
+{
+  "source": "tdcommons",
+  "dataset": "clintox",
+  "task": "classification",
+  "last_updated": "2026-06-16",
+  "n_molecules": 1478,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "tdc-scaffold",
+    "conserved": true,
+    "stratified": true
+  },
+  "columns": {
+    "clintox": {
+      "n_samples": 1478,
+      "n_positives": 112,
+      "n_negatives": 1366,
+      "random_auroc_mean": 0.757421939110292,
+      "random_auroc_std": 0.057049398794049855,
+      "random_aupr_mean": 0.2586503820432194,
+      "random_aupr_std": 0.04642556829921189,
+      "scaffold_auroc": 0.6845238095238095,
+      "scaffold_aupr": 0.2613159991325935,
+      "scaffold_split_method": "tdc-scaffold",
+      "scaffold_test_positives": 24,
+      "scaffold_test_negatives": 273,
+      "leaderboard_metric": null,
+      "leaderboard_value": null,
+      "leaderboard_split": null,
+      "leaderboard_source": null,
+      "leaderboard_provider": null
+    }
+  },
+  "auroc_mean": 0.757421939110292,
+  "aupr_mean": 0.2586503820432194,
+  "leaderboard_metric": null,
+  "leaderboard_value": null,
+  "leaderboard_split": null,
+  "leaderboard_source": null,
+  "leaderboard_provider": null
+}

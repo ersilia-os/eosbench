@@ -1,0 +1,48 @@
+{
+  "source": "moleculenet",
+  "dataset": "hiv",
+  "task": "classification",
+  "last_updated": "2026-06-16",
+  "n_molecules": 41120,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "stratified-murcko",
+    "conserved": true,
+    "stratified": true
+  },
+  "columns": {
+    "hiv": {
+      "n_samples": 41120,
+      "n_positives": 1443,
+      "n_negatives": 39677,
+      "random_auroc_mean": null,
+      "random_auroc_std": null,
+      "random_aupr_mean": null,
+      "random_aupr_std": null,
+      "scaffold_auroc": null,
+      "scaffold_aupr": null,
+      "scaffold_split_method": "stratified-murcko",
+      "scaffold_test_positives": 113,
+      "scaffold_test_negatives": 4000,
+      "leaderboard_metric": "ROC-AUC",
+      "leaderboard_value": 0.763,
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model",
+      "description": "Inhibition of HIV replication in the NCI antiviral screen (active vs inactive).",
+      "description_source": "MoleculeNet HIV (NCI DTP AIDS antiviral screen)",
+      "leaderboard_split": "scaffold",
+      "leaderboard_provider": "moleculenet"
+    }
+  },
+  "auroc_mean": null,
+  "aupr_mean": null,
+  "leaderboard_metric": "ROC-AUC",
+  "leaderboard_value": 0.763,
+  "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model",
+  "leaderboard_split": "scaffold",
+  "leaderboard_provider": "moleculenet"
+}

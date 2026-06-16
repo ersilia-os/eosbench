@@ -1,0 +1,69 @@
+{
+  "source": "moleculenet",
+  "dataset": "clintox",
+  "task": "classification",
+  "last_updated": "2026-06-16",
+  "n_molecules": 1480,
+  "n_columns": 2,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "murcko",
+    "conserved": true,
+    "stratified": false
+  },
+  "columns": {
+    "FDA_APPROVED": {
+      "n_samples": 1480,
+      "n_positives": 1386,
+      "n_negatives": 94,
+      "random_auroc_mean": null,
+      "random_auroc_std": null,
+      "random_aupr_mean": null,
+      "random_aupr_std": null,
+      "scaffold_auroc": null,
+      "scaffold_aupr": null,
+      "scaffold_split_method": "murcko",
+      "scaffold_test_positives": 135,
+      "scaffold_test_negatives": 13,
+      "leaderboard_metric": "ROC-AUC",
+      "leaderboard_value": 0.832,
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg)",
+      "description": "FDA approval status: 1 if the compound is an FDA-approved drug.",
+      "description_source": "MoleculeNet ClinTox (Gayvert et al. 2016)",
+      "leaderboard_split": "random",
+      "leaderboard_provider": "moleculenet"
+    },
+    "CT_TOX": {
+      "n_samples": 1480,
+      "n_positives": 112,
+      "n_negatives": 1368,
+      "random_auroc_mean": null,
+      "random_auroc_std": null,
+      "random_aupr_mean": null,
+      "random_aupr_std": null,
+      "scaffold_auroc": null,
+      "scaffold_aupr": null,
+      "scaffold_split_method": "murcko",
+      "scaffold_test_positives": 14,
+      "scaffold_test_negatives": 134,
+      "leaderboard_metric": "ROC-AUC",
+      "leaderboard_value": 0.832,
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg)",
+      "description": "Clinical-trial toxicity: 1 if the drug failed clinical trials for toxicity reasons.",
+      "description_source": "MoleculeNet ClinTox (Gayvert et al. 2016)",
+      "leaderboard_split": "random",
+      "leaderboard_provider": "moleculenet"
+    }
+  },
+  "auroc_mean": null,
+  "aupr_mean": null,
+  "leaderboard_metric": "ROC-AUC",
+  "leaderboard_value": 0.832,
+  "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg)",
+  "leaderboard_split": "random",
+  "leaderboard_provider": "moleculenet"
+}
