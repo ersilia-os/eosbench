@@ -61,7 +61,13 @@ def test_mirror_dataset_materializes_expected_folder_structure(tmp_path, monkeyp
 
     monkeypatch.setattr("eosbench.dataset._download_to", fake_download)
 
-    created = mirror_dataset(source, dataset, featurization="morgan", output_dir=tmp_path / "data", task=task_type)
+    created = mirror_dataset(
+        source,
+        dataset,
+        featurization="morgan",
+        output_dir=tmp_path / "data",
+        task=task_type,
+    )
 
     assert created == tmp_path / "data" / source / task_type / dataset
     assert (created / "data.csv").is_file()
@@ -72,7 +78,9 @@ def test_mirror_dataset_materializes_expected_folder_structure(tmp_path, monkeyp
 
 def test_mirror_dataset_rejects_unknown_featurization(tmp_path):
     with pytest.raises(ValueError, match="featurization must be None"):
-        mirror_dataset("tdcommons", "ames", featurization="bogus", output_dir=tmp_path / "data")
+        mirror_dataset(
+            "tdcommons", "ames", featurization="bogus", output_dir=tmp_path / "data"
+        )
 
 
 def test_mirror_dataset_from_dir_copies_local_files(tmp_path):
@@ -86,8 +94,12 @@ def test_mirror_dataset_from_dir_copies_local_files(tmp_path):
     (local / "metadata.json").write_text('{"source": "polaris", "dataset": "demo"}')
 
     created = mirror_dataset(
-        source, dataset, featurization="morgan",
-        output_dir=tmp_path / "out", task=task_type, from_dir=tmp_path / "local",
+        source,
+        dataset,
+        featurization="morgan",
+        output_dir=tmp_path / "out",
+        task=task_type,
+        from_dir=tmp_path / "local",
     )
 
     assert created == tmp_path / "out" / source / task_type / dataset
@@ -113,20 +125,29 @@ def test_mirror_dataset_from_dir_skips_existing_files(tmp_path):
     (dest_dir / "metadata.json").write_text("SENTINEL")
 
     mirror_dataset(
-        source, dataset, featurization=None,
-        output_dir=out, task=task_type, from_dir=tmp_path / "local",
+        source,
+        dataset,
+        featurization=None,
+        output_dir=out,
+        task=task_type,
+        from_dir=tmp_path / "local",
     )
 
-    assert (dest_dir / "data.csv").read_text() == "SENTINEL"      # not overwritten
+    assert (dest_dir / "data.csv").read_text() == "SENTINEL"  # not overwritten
     assert (dest_dir / "metadata.json").read_text() == "SENTINEL"  # not overwritten
-    assert (dest_dir / "folds.csv").read_text().startswith("random_fold")  # newly copied
+    assert (
+        (dest_dir / "folds.csv").read_text().startswith("random_fold")
+    )  # newly copied
 
 
 def test_mirror_dataset_from_dir_missing_file_raises(tmp_path):
     with pytest.raises(FileNotFoundError, match="data.csv not found.*--from_dir"):
         mirror_dataset(
-            "polaris", "missing", featurization=None,
-            output_dir=tmp_path / "out", from_dir=tmp_path / "empty",
+            "polaris",
+            "missing",
+            featurization=None,
+            output_dir=tmp_path / "out",
+            from_dir=tmp_path / "empty",
         )
 
 
@@ -154,7 +175,9 @@ def test_load_dataset_supports_smiles_and_feature_arrays(tmp_path, monkeypatch):
     np.save(npy_path, np.arange(12).reshape(3, 4))
     np.save(rdkit_path, np.arange(12, 24).reshape(3, 4))
     pd.DataFrame({"fold": [0, 1, 0]}).to_csv(folds_path, index=False)
-    meta_path.write_text(json.dumps({"source": source, "dataset": dataset, "task": task_type}))
+    meta_path.write_text(
+        json.dumps({"source": source, "dataset": dataset, "task": task_type})
+    )
 
     def fake_fetch(src, task, name, filename):
         assert (src, task, name) == (source, task_type, dataset)
@@ -200,18 +223,29 @@ def _patch_fetch(monkeypatch, tmp_path, folds_df):
     folds_path = tmp_path / "folds.csv"
     meta_path = tmp_path / "metadata.json"
 
-    pd.DataFrame({"smiles": ["CCO", "CCN", "CCC", "CCCC"], "activity": [1, 0, 1, 0]}).to_csv(
-        csv_path, index=False
-    )
+    pd.DataFrame(
+        {"smiles": ["CCO", "CCN", "CCC", "CCCC"], "activity": [1, 0, 1, 0]}
+    ).to_csv(csv_path, index=False)
     np.save(npy_path, np.arange(16).reshape(4, 4))
     folds_df.to_csv(folds_path, index=False)
     # Legacy metadata (no "columns" key) -> load_dataset uses the flat activity/value path.
-    meta_path.write_text(json.dumps({
-        "source": "legacy", "dataset": "demo", "task": "classification", "n_samples": 4,
-    }))
+    meta_path.write_text(
+        json.dumps(
+            {
+                "source": "legacy",
+                "dataset": "demo",
+                "task": "classification",
+                "n_samples": 4,
+            }
+        )
+    )
 
     def fake_fetch(src, task, name, filename):
-        return str({"data.csv": csv_path, "morgan.npy": npy_path, "folds.csv": folds_path}[filename])
+        return str(
+            {"data.csv": csv_path, "morgan.npy": npy_path, "folds.csv": folds_path}[
+                filename
+            ]
+        )
 
     monkeypatch.setattr("eosbench.dataset._fetch", fake_fetch)
     monkeypatch.setattr("eosbench.dataset._pkg_data_path", lambda *a: str(meta_path))
@@ -233,7 +267,9 @@ def test_load_dataset_random_and_scaffold_splits(tmp_path, monkeypatch):
     ds_random = load_dataset("legacy", "demo", featurization="morgan", split="random")
     assert len(ds_random.split) == 3  # one leave-one-fold-out pair per unique fold
 
-    ds_scaffold = load_dataset("legacy", "demo", featurization="morgan", split="scaffold")
+    ds_scaffold = load_dataset(
+        "legacy", "demo", featurization="morgan", split="scaffold"
+    )
     assert len(ds_scaffold.split) == 1  # single holdout
     train_idx, test_idx = ds_scaffold.split[0]
     assert train_idx.tolist() == [0, 1]
@@ -257,22 +293,42 @@ def _patch_family(monkeypatch, tmp_path):
     import json
 
     metadata = {
-        "source": "moleculenet", "dataset": "fam", "task": "classification",
-        "n_molecules": 4, "n_columns": 2,
+        "source": "moleculenet",
+        "dataset": "fam",
+        "task": "classification",
+        "n_molecules": 4,
+        "n_columns": 2,
         "columns": {
-            "A": {"n_samples": 4, "n_positives": 2, "random_auroc_mean": 0.9,
-                  "random_aupr_mean": 0.9, "description": "Endpoint A description."},
-            "B": {"n_samples": 3, "n_positives": 2, "random_auroc_mean": 0.8, "random_aupr_mean": 0.8},
+            "A": {
+                "n_samples": 4,
+                "n_positives": 2,
+                "random_auroc_mean": 0.9,
+                "random_aupr_mean": 0.9,
+                "description": "Endpoint A description.",
+            },
+            "B": {
+                "n_samples": 3,
+                "n_positives": 2,
+                "random_auroc_mean": 0.8,
+                "random_aupr_mean": 0.8,
+            },
         },
     }
     meta_path = tmp_path / "metadata.json"
     meta_path.write_text(json.dumps(metadata))
     pd.DataFrame(
-        {"smiles": ["CCO", "CCN", "CCC", "CCCC"], "A": [1, 0, 1, 0], "B": [1.0, 0.0, np.nan, 1.0]}
+        {
+            "smiles": ["CCO", "CCN", "CCC", "CCCC"],
+            "A": [1, 0, 1, 0],
+            "B": [1.0, 0.0, np.nan, 1.0],
+        }
     ).to_csv(tmp_path / "data.csv", index=False)
     np.save(tmp_path / "morgan.npy", np.arange(16).reshape(4, 4))
     pd.DataFrame(
-        {"random_fold": [0, 1, 2, 0], "scaffold_split": ["train", "train", "test", "test"]}
+        {
+            "random_fold": [0, 1, 2, 0],
+            "scaffold_split": ["train", "train", "test", "test"],
+        }
     ).to_csv(tmp_path / "folds.csv", index=False)
 
     monkeypatch.setattr("eosbench.dataset._pkg_data_path", lambda *a: str(meta_path))
@@ -283,21 +339,27 @@ def _patch_family(monkeypatch, tmp_path):
     monkeypatch.setattr("eosbench.dataset._fetch", fake_fetch)
 
 
-def test_load_dataset_family_selects_column_and_masks_unlabeled_rows(tmp_path, monkeypatch):
+def test_load_dataset_family_selects_column_and_masks_unlabeled_rows(
+    tmp_path, monkeypatch
+):
     _patch_family(monkeypatch, tmp_path)
 
     ds_a = load_dataset("moleculenet", "fam", featurization="morgan", column="A")
     assert ds_a.X.shape == (4, 4)
     assert ds_a.y.tolist() == [1, 0, 1, 0]
     assert ds_a.metadata["column"] == "A"
-    assert ds_a.metadata["description"] == "Endpoint A description."  # column block merged in
+    assert (
+        ds_a.metadata["description"] == "Endpoint A description."
+    )  # column block merged in
 
     # column B has a NaN at row 2 -> that molecule is dropped from X, y, and the split.
-    ds_b = load_dataset("moleculenet", "fam", featurization="morgan", column="B", split="scaffold")
+    ds_b = load_dataset(
+        "moleculenet", "fam", featurization="morgan", column="B", split="scaffold"
+    )
     assert ds_b.X.shape == (3, 4)
     assert ds_b.y.tolist() == [1, 0, 1]
     train_idx, test_idx = ds_b.split[0]
-    assert train_idx.tolist() == [0, 1]   # rows 0,1 (row 2 dropped, row 3 was 'test')
+    assert train_idx.tolist() == [0, 1]  # rows 0,1 (row 2 dropped, row 3 was 'test')
     assert test_idx.tolist() == [2]
 
 
@@ -322,13 +384,16 @@ def test_get_catalog_expand_has_column_column():
 
 def test_get_catalog_collapsed_reports_median_counts(monkeypatch):
     """A multi-column family's collapsed row summarizes n_tot/n_pos by median."""
+
     class FakeInfo:
         dataset = "fam"
-        metadata = {"columns": {
-            "A": {"n_samples": 10, "n_positives": 4},
-            "B": {"n_samples": 20, "n_positives": 6},
-            "C": {"n_samples": 30, "n_positives": 2},
-        }}
+        metadata = {
+            "columns": {
+                "A": {"n_samples": 10, "n_positives": 4},
+                "B": {"n_samples": 20, "n_positives": 6},
+                "C": {"n_samples": 30, "n_positives": 2},
+            }
+        }
 
         @property
         def columns(self):
@@ -342,7 +407,7 @@ def test_get_catalog_collapsed_reports_median_counts(monkeypatch):
 
     row = get_catalog().iloc[0]
     assert row["n_columns"] == 3
-    assert row["n_tot"] == 20   # median(10, 20, 30)
-    assert row["n_pos"] == 4    # median(4, 6, 2)
+    assert row["n_tot"] == 20  # median(10, 20, 30)
+    assert row["n_pos"] == 4  # median(4, 6, 2)
     # ratio is the median of the per-column ratios: median(0.4, 0.3, 0.0667) = 0.3
     assert row["ratio"] == pytest.approx(0.3)

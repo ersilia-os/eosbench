@@ -12,21 +12,28 @@ def catalog():
     """A small synthetic catalog frame with a NaN-metric row."""
     return pd.DataFrame(
         {
-            "name":   ["ames", "bbbp", "herg", "sider"],
+            "name": ["ames", "bbbp", "herg", "sider"],
             "source": ["tdc", "moleculenet", "tdc", "moleculenet"],
-            "n_tot":  [7278, 2039, 655, 1427],
-            "n_pos":  [3974, 1560, 350, None],
-            "auroc":  [0.90, 0.85, 0.78, np.nan],
-            "auprc":  [0.91, 0.83, 0.70, np.nan],
-            "ratio":  [0.546, 0.765, 0.534, np.nan],
+            "n_tot": [7278, 2039, 655, 1427],
+            "n_pos": [3974, 1560, 350, None],
+            "auroc": [0.90, 0.85, 0.78, np.nan],
+            "auprc": [0.91, 0.83, 0.70, np.nan],
+            "ratio": [0.546, 0.765, 0.534, np.nan],
         }
     )
 
 
 def test_min_max_samples_bound_rows(catalog):
-    assert set(filter_catalog(catalog, min_samples=1000)["name"]) == {"ames", "bbbp", "sider"}
+    assert set(filter_catalog(catalog, min_samples=1000)["name"]) == {
+        "ames",
+        "bbbp",
+        "sider",
+    }
     assert set(filter_catalog(catalog, max_samples=1000)["name"]) == {"herg"}
-    assert set(filter_catalog(catalog, min_samples=1000, max_samples=2500)["name"]) == {"bbbp", "sider"}
+    assert set(filter_catalog(catalog, min_samples=1000, max_samples=2500)["name"]) == {
+        "bbbp",
+        "sider",
+    }
 
 
 def test_min_max_ratio_bound_rows(catalog):
@@ -91,17 +98,18 @@ def test_filter_catalog_works_on_real_get_catalog():
 
 # --- regression / task-aware columns ---------------------------------------
 
+
 @pytest.fixture
 def regression_catalog():
     """A synthetic regression catalog: rmse/r2 metrics, no n_pos/ratio."""
     return pd.DataFrame(
         {
-            "name":   ["esol", "freesolv", "lipo"],
+            "name": ["esol", "freesolv", "lipo"],
             "source": ["moleculenet", "moleculenet", "moleculenet"],
-            "task":   ["regression"] * 3,
-            "n_tot":  [1128, 642, 4200],
-            "rmse":   [0.55, 1.15, np.nan],
-            "r2":     [0.93, 0.88, np.nan],
+            "task": ["regression"] * 3,
+            "n_tot": [1128, 642, 4200],
+            "rmse": [0.55, 1.15, np.nan],
+            "r2": [0.93, 0.88, np.nan],
         }
     )
 
@@ -122,12 +130,30 @@ def test_classification_filter_on_regression_frame_errors(regression_catalog):
 
 def test_catalog_columns_are_task_aware():
     assert catalog_columns("classification") == [
-        "name", "source", "task", "n_columns", "n_tot", "n_pos",
-        "auroc", "auprc", "ratio", "leaderboard_score", "leaderboard_metric", "last_updated",
+        "name",
+        "source",
+        "task",
+        "n_columns",
+        "n_tot",
+        "n_pos",
+        "auroc",
+        "auprc",
+        "ratio",
+        "leaderboard_score",
+        "leaderboard_metric",
+        "last_updated",
     ]
     assert catalog_columns("regression") == [
-        "name", "source", "task", "n_columns", "n_tot", "rmse", "r2",
-        "leaderboard_score", "leaderboard_metric", "last_updated",
+        "name",
+        "source",
+        "task",
+        "n_columns",
+        "n_tot",
+        "rmse",
+        "r2",
+        "leaderboard_score",
+        "leaderboard_metric",
+        "last_updated",
     ]
     assert "column" in catalog_columns("regression", expand=True)
     assert "n_columns" not in catalog_columns("regression", expand=True)
@@ -135,10 +161,14 @@ def test_catalog_columns_are_task_aware():
 
 def test_catalog_columns_include_leaderboard():
     assert catalog_columns("classification")[-3:] == [
-        "leaderboard_score", "leaderboard_metric", "last_updated",
+        "leaderboard_score",
+        "leaderboard_metric",
+        "last_updated",
     ]
     assert catalog_columns("regression")[-3:] == [
-        "leaderboard_score", "leaderboard_metric", "last_updated",
+        "leaderboard_score",
+        "leaderboard_metric",
+        "last_updated",
     ]
 
 
@@ -179,9 +209,12 @@ def test_get_catalog_regression_is_empty_but_well_formed():
 
 # --- cell formatting --------------------------------------------------------
 
+
 def test_fmt_cell_counts_are_grouped_integers():
     assert _fmt_cell("n_tot", 10000) == "10,000"
-    assert _fmt_cell("n_tot", 7278.0) == "7,278"     # float (from NaN-promoted col) -> no decimals
+    assert (
+        _fmt_cell("n_tot", 7278.0) == "7,278"
+    )  # float (from NaN-promoted col) -> no decimals
     assert _fmt_cell("n_pos", None) == "-"
     assert _fmt_cell("n_pos", np.nan) == "-"
 

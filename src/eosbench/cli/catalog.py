@@ -11,15 +11,34 @@ from ..dataset import get_catalog
 # classification or regression). --sort_by is validated against the actual
 # frame at runtime, so listing the superset here is fine.
 SORT_COLUMNS = [
-    "name", "source", "task", "column", "n_columns",
-    "n_tot", "n_pos", "auroc", "auprc", "rmse", "r2", "ratio",
-    "leaderboard_score", "leaderboard_metric", "last_updated",
+    "name",
+    "source",
+    "task",
+    "column",
+    "n_columns",
+    "n_tot",
+    "n_pos",
+    "auroc",
+    "auprc",
+    "rmse",
+    "r2",
+    "ratio",
+    "leaderboard_score",
+    "leaderboard_metric",
+    "last_updated",
 ]
 
 # Integer count columns: render with thousands separators and no decimals.
 COUNT_COLUMNS = {"n_tot", "n_pos", "n_columns"}
 # Columns rendered right-aligned (numeric).
-NUMERIC_COLUMNS = COUNT_COLUMNS | {"auroc", "auprc", "rmse", "r2", "ratio", "leaderboard_score"}
+NUMERIC_COLUMNS = COUNT_COLUMNS | {
+    "auroc",
+    "auprc",
+    "rmse",
+    "r2",
+    "ratio",
+    "leaderboard_score",
+}
 # Friendlier header labels for the rendered table. The underlying DataFrame
 # column names (used by --sort_by and the library API) are unchanged.
 DISPLAY_NAMES = {
@@ -167,29 +186,142 @@ def main():
     )
 
     selection = parser.add_argument_group("dataset selection")
-    selection.add_argument("--source", type=str, default=None, metavar="SOURCE", help="Only this source, e.g. tdcommons, moleculenet, polaris (default: all).")
-    selection.add_argument("--task", type=str, default="classification", metavar="TASK", help="Task type: classification or regression (default: classification).")
-    selection.add_argument("--expand", action="store_true", help="One row per label column instead of one row per dataset family.")
+    selection.add_argument(
+        "--source",
+        type=str,
+        default=None,
+        metavar="SOURCE",
+        help="Only this source, e.g. tdcommons, moleculenet, polaris (default: all).",
+    )
+    selection.add_argument(
+        "--task",
+        type=str,
+        default="classification",
+        metavar="TASK",
+        help="Task type: classification or regression (default: classification).",
+    )
+    selection.add_argument(
+        "--expand",
+        action="store_true",
+        help="One row per label column instead of one row per dataset family.",
+    )
 
     filters = parser.add_argument_group("filters (combine with AND)")
-    filters.add_argument("--name", type=str, default=None, metavar="SUBSTR", help="Keep datasets whose name contains SUBSTR (case-insensitive).")
-    filters.add_argument("--min_samples", type=int, default=None, metavar="N", help="Keep datasets with n_tot >= N.")
-    filters.add_argument("--max_samples", type=int, default=None, metavar="N", help="Keep datasets with n_tot <= N.")
-    filters.add_argument("--min_ratio", type=float, default=None, metavar="R", help="[classification] Keep datasets with positive-class ratio >= R.")
-    filters.add_argument("--max_ratio", type=float, default=None, metavar="R", help="[classification] Keep datasets with positive-class ratio <= R.")
-    filters.add_argument("--min_auroc", type=float, default=None, metavar="A", help="[classification] Keep datasets with baseline AUROC >= A.")
-    filters.add_argument("--max_auroc", type=float, default=None, metavar="A", help="[classification] Keep datasets with baseline AUROC <= A.")
-    filters.add_argument("--min_auprc", type=float, default=None, metavar="A", help="[classification] Keep datasets with baseline AUPRC >= A.")
-    filters.add_argument("--max_auprc", type=float, default=None, metavar="A", help="[classification] Keep datasets with baseline AUPRC <= A.")
-    filters.add_argument("--min_rmse", type=float, default=None, metavar="V", help="[regression] Keep datasets with baseline RMSE >= V.")
-    filters.add_argument("--max_rmse", type=float, default=None, metavar="V", help="[regression] Keep datasets with baseline RMSE <= V.")
-    filters.add_argument("--min_r2", type=float, default=None, metavar="V", help="[regression] Keep datasets with baseline R-squared >= V.")
-    filters.add_argument("--max_r2", type=float, default=None, metavar="V", help="[regression] Keep datasets with baseline R-squared <= V.")
+    filters.add_argument(
+        "--name",
+        type=str,
+        default=None,
+        metavar="SUBSTR",
+        help="Keep datasets whose name contains SUBSTR (case-insensitive).",
+    )
+    filters.add_argument(
+        "--min_samples",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Keep datasets with n_tot >= N.",
+    )
+    filters.add_argument(
+        "--max_samples",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Keep datasets with n_tot <= N.",
+    )
+    filters.add_argument(
+        "--min_ratio",
+        type=float,
+        default=None,
+        metavar="R",
+        help="[classification] Keep datasets with positive-class ratio >= R.",
+    )
+    filters.add_argument(
+        "--max_ratio",
+        type=float,
+        default=None,
+        metavar="R",
+        help="[classification] Keep datasets with positive-class ratio <= R.",
+    )
+    filters.add_argument(
+        "--min_auroc",
+        type=float,
+        default=None,
+        metavar="A",
+        help="[classification] Keep datasets with baseline AUROC >= A.",
+    )
+    filters.add_argument(
+        "--max_auroc",
+        type=float,
+        default=None,
+        metavar="A",
+        help="[classification] Keep datasets with baseline AUROC <= A.",
+    )
+    filters.add_argument(
+        "--min_auprc",
+        type=float,
+        default=None,
+        metavar="A",
+        help="[classification] Keep datasets with baseline AUPRC >= A.",
+    )
+    filters.add_argument(
+        "--max_auprc",
+        type=float,
+        default=None,
+        metavar="A",
+        help="[classification] Keep datasets with baseline AUPRC <= A.",
+    )
+    filters.add_argument(
+        "--min_rmse",
+        type=float,
+        default=None,
+        metavar="V",
+        help="[regression] Keep datasets with baseline RMSE >= V.",
+    )
+    filters.add_argument(
+        "--max_rmse",
+        type=float,
+        default=None,
+        metavar="V",
+        help="[regression] Keep datasets with baseline RMSE <= V.",
+    )
+    filters.add_argument(
+        "--min_r2",
+        type=float,
+        default=None,
+        metavar="V",
+        help="[regression] Keep datasets with baseline R-squared >= V.",
+    )
+    filters.add_argument(
+        "--max_r2",
+        type=float,
+        default=None,
+        metavar="V",
+        help="[regression] Keep datasets with baseline R-squared <= V.",
+    )
 
     ordering = parser.add_argument_group("sorting and limiting")
-    ordering.add_argument("--sort_by", type=str, default=None, choices=SORT_COLUMNS, metavar="COLUMN", help="Sort by a column (default: source then name). Choices: " + ", ".join(SORT_COLUMNS) + ".")
-    ordering.add_argument("--desc", action="store_true", help="Sort in descending order (default: ascending).")
-    ordering.add_argument("--limit", type=int, default=None, metavar="N", help="Show only the first N rows (after filtering and sorting).")
+    ordering.add_argument(
+        "--sort_by",
+        type=str,
+        default=None,
+        choices=SORT_COLUMNS,
+        metavar="COLUMN",
+        help="Sort by a column (default: source then name). Choices: "
+        + ", ".join(SORT_COLUMNS)
+        + ".",
+    )
+    ordering.add_argument(
+        "--desc",
+        action="store_true",
+        help="Sort in descending order (default: ascending).",
+    )
+    ordering.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Show only the first N rows (after filtering and sorting).",
+    )
 
     args = parser.parse_args()
 

@@ -70,14 +70,22 @@ def process(source: str, json_path: Path) -> None:
             _patch(root / source / TASK / family / "metadata.json", fields)
         if fields["leaderboard_value"] is not None:
             n_lb += 1
-    print(f"  [{source}] patched {len(families)} families ({n_lb} with a leaderboard score)")
+    print(
+        f"  [{source}] patched {len(families)} families ({n_lb} with a leaderboard score)"
+    )
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Backfill leaderboard fields into metadata.")
-    parser.add_argument("--sources", type=str, default=None, help="Comma-separated (default: all).")
+    parser = argparse.ArgumentParser(
+        description="Backfill leaderboard fields into metadata."
+    )
+    parser.add_argument(
+        "--sources", type=str, default=None, help="Comma-separated (default: all)."
+    )
     args = parser.parse_args()
-    want = {s.strip() for s in args.sources.split(",")} if args.sources else set(SOURCES)
+    want = (
+        {s.strip() for s in args.sources.split(",")} if args.sources else set(SOURCES)
+    )
     for source, json_path in SOURCES.items():
         if source in want:
             process(source, json_path)

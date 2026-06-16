@@ -78,7 +78,9 @@ def build_catalog(head_check=_head_ok) -> dict:
 
     records.sort(key=lambda r: (r["source"], r["task"], r["name"]))
     return {
-        "generated_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": _dt.datetime.now(_dt.timezone.utc).isoformat(
+            timespec="seconds"
+        ),
         "s3_base": S3_BASE,
         "n_datasets": len(records),
         "n_available": sum(1 for r in records if r["available"]),
@@ -89,11 +91,22 @@ def build_catalog(head_check=_head_ok) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Export the eosbench catalog to JSON.")
-    parser.add_argument("--out", type=str, default="site/catalog.json", help="Output path (default: site/catalog.json).")
-    parser.add_argument("--no-check", action="store_true", help="Skip S3 availability HEAD probes (mark all pending).")
+    parser.add_argument(
+        "--out",
+        type=str,
+        default="site/catalog.json",
+        help="Output path (default: site/catalog.json).",
+    )
+    parser.add_argument(
+        "--no-check",
+        action="store_true",
+        help="Skip S3 availability HEAD probes (mark all pending).",
+    )
     args = parser.parse_args()
 
-    payload = build_catalog(head_check=(lambda _url: False) if args.no_check else _head_ok)
+    payload = build_catalog(
+        head_check=(lambda _url: False) if args.no_check else _head_ok
+    )
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

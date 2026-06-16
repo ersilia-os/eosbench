@@ -26,7 +26,11 @@ TASK = "classification"
 
 def _families() -> list[str]:
     base = common.PKG_DATA_ROOT / SOURCE / TASK
-    return sorted(p.name for p in base.iterdir() if (p / "metadata.json").exists()) if base.exists() else []
+    return (
+        sorted(p.name for p in base.iterdir() if (p / "metadata.json").exists())
+        if base.exists()
+        else []
+    )
 
 
 def _update_one(path, descriptions: dict[str, dict]) -> None:
@@ -56,8 +60,15 @@ def process(family: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Add per-column descriptions to MoleculeNet metadata.")
-    parser.add_argument("--datasets", type=str, default=None, help="Comma-separated families (default: all).")
+    parser = argparse.ArgumentParser(
+        description="Add per-column descriptions to MoleculeNet metadata."
+    )
+    parser.add_argument(
+        "--datasets",
+        type=str,
+        default=None,
+        help="Comma-separated families (default: all).",
+    )
     args = parser.parse_args()
 
     families = _families()
@@ -69,7 +80,9 @@ def main() -> None:
 
     for family in families:
         process(family)
-    print("\nDone. Re-bundled metadata carries column descriptions; re-upload data/ copies if publishing.")
+    print(
+        "\nDone. Re-bundled metadata carries column descriptions; re-upload data/ copies if publishing."
+    )
 
 
 if __name__ == "__main__":

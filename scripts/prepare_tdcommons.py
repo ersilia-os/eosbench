@@ -76,7 +76,11 @@ def _group_class(group: str):
 
 
 def prepare_one(
-    group: str, name: str, leaderboard: dict, n_folds: int, seed: int,
+    group: str,
+    name: str,
+    leaderboard: dict,
+    n_folds: int,
+    seed: int,
     compute_baseline: bool = True,
 ) -> int:
     """Prepare ONE dataset. Returns 1 if written, 0 if skipped (reason logged)."""
@@ -125,16 +129,27 @@ def prepare_one(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Prepare TDC ADMET classification datasets for eosbench.")
+    parser = argparse.ArgumentParser(
+        description="Prepare TDC ADMET classification datasets for eosbench."
+    )
     parser.add_argument(
         "--datasets",
         type=str,
         default="",
         help="Comma-separated TDC dataset names (e.g. ames,herg). Default: auto-discover all.",
     )
-    parser.add_argument("--limit", type=int, default=None, help="Only process the first N discovered datasets.")
-    parser.add_argument("--n_folds", type=int, default=5, help="Random CV folds (default 5).")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed (default 42).")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Only process the first N discovered datasets.",
+    )
+    parser.add_argument(
+        "--n_folds", type=int, default=5, help="Random CV folds (default 5)."
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed (default 42)."
+    )
     parser.add_argument(
         "--no_baseline",
         action="store_true",
@@ -161,11 +176,17 @@ def main() -> None:
     for group, name in pairs:
         print(f"\n== {name} ({group}) ==")
         total += prepare_one(
-            group, name, leaderboard, args.n_folds, args.seed,
+            group,
+            name,
+            leaderboard,
+            args.n_folds,
+            args.seed,
             compute_baseline=not args.no_baseline,
         )
 
-    print(f"\nDone: wrote {total} family(ies) from {len(pairs)} candidate(s) considered.")
+    print(
+        f"\nDone: wrote {total} family(ies) from {len(pairs)} candidate(s) considered."
+    )
     common.print_upload_hint()
 
 

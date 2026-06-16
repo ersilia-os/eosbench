@@ -18,7 +18,7 @@ CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "eosbench")
 # Supported featurizations and their output dimensionalities.
 FEATURIZATIONS = {
     "morgan": 2048,  # Morgan fingerprints (counts), int64
-    "rdkit":   217,  # RDKit physicochemical descriptors, float64
+    "rdkit": 217,  # RDKit physicochemical descriptors, float64
 }
 
 
@@ -85,8 +85,7 @@ def _fetch(source: str, task: str, dataset: str, filename: str) -> str:
 
 def _pkg_data_path(source: str, task: str, dataset: str, filename: str) -> str:
     return str(
-        resources.files("eosbench")
-        / "_data" / source / task / dataset / filename
+        resources.files("eosbench") / "_data" / source / task / dataset / filename
     )
 
 
@@ -121,10 +120,7 @@ class Splits:
     def from_folds(cls, folds: np.ndarray) -> "Splits":
         """Build leave-one-fold-out CV splits from an integer fold array."""
         unique = sorted(set(folds.tolist()))
-        return cls([
-            (np.where(folds != k)[0], np.where(folds == k)[0])
-            for k in unique
-        ])
+        return cls([(np.where(folds != k)[0], np.where(folds == k)[0]) for k in unique])
 
     @classmethod
     def from_holdout(cls, labels: np.ndarray) -> "Splits":
@@ -232,7 +228,9 @@ class DatasetInfo:
         )
 
 
-def _build_splits(folds_df: pd.DataFrame, split: str, mask: np.ndarray | None = None) -> Splits:
+def _build_splits(
+    folds_df: pd.DataFrame, split: str, mask: np.ndarray | None = None
+) -> Splits:
     """Build a :class:`Splits` from a folds.csv frame for the requested strategy.
 
     Recognises the multi-column schema (``random_fold`` / ``scaffold_split``) and the
@@ -402,7 +400,9 @@ def iter_datasets(
         yield DatasetInfo(source, task, name)
 
 
-def list_datasets(source: str | None = None, task: str = "classification") -> list[dict]:
+def list_datasets(
+    source: str | None = None, task: str = "classification"
+) -> list[dict]:
     """List available datasets.
 
     Parameters
@@ -480,13 +480,17 @@ def _median_float(values):
 # pipeline must populate these names when it gains a regression baseline.
 TASK_METRICS = {
     "classification": {
-        "metrics": [("auroc", "auroc_mean", "random_auroc_mean"),
-                    ("auprc", "aupr_mean",  "random_aupr_mean")],
-        "show_class_balance": True,   # include n_pos and ratio
+        "metrics": [
+            ("auroc", "auroc_mean", "random_auroc_mean"),
+            ("auprc", "aupr_mean", "random_aupr_mean"),
+        ],
+        "show_class_balance": True,  # include n_pos and ratio
     },
     "regression": {
-        "metrics": [("rmse", "rmse_mean", "random_rmse_mean"),
-                    ("r2",   "r2_mean",   "random_r2_mean")],
+        "metrics": [
+            ("rmse", "rmse_mean", "random_rmse_mean"),
+            ("r2", "r2_mean", "random_r2_mean"),
+        ],
         "show_class_balance": False,
     },
 }
@@ -554,8 +558,11 @@ def get_catalog(
                 for name, c in items:
                     n_tot, n_pos = c.get("n_samples"), c.get("n_positives")
                     row = {
-                        "name": info.dataset, "source": src, "task": task,
-                        "column": name, "n_tot": n_tot,
+                        "name": info.dataset,
+                        "source": src,
+                        "task": task,
+                        "column": name,
+                        "n_tot": n_tot,
                         "leaderboard_score": c.get("leaderboard_value"),
                         "leaderboard_metric": c.get("leaderboard_metric"),
                         "last_updated": last_updated,
@@ -576,14 +583,19 @@ def get_catalog(
                 vals = columns.values()
                 n_tot = _median_int(c.get("n_samples") for c in vals)
                 n_pos = _median_int(c.get("n_positives") for c in vals)
-                ratio = _median_float(_ratio(c.get("n_samples"), c.get("n_positives")) for c in vals)
+                ratio = _median_float(
+                    _ratio(c.get("n_samples"), c.get("n_positives")) for c in vals
+                )
             else:
                 n_tot = meta.get("n_samples")
                 n_pos = meta.get("n_positives")
                 ratio = _ratio(n_tot, n_pos)
             row = {
-                "name": info.dataset, "source": src, "task": task,
-                "n_columns": len(info.columns), "n_tot": n_tot,
+                "name": info.dataset,
+                "source": src,
+                "task": task,
+                "n_columns": len(info.columns),
+                "n_tot": n_tot,
                 "leaderboard_score": meta.get("leaderboard_value"),
                 "leaderboard_metric": meta.get("leaderboard_metric"),
                 "last_updated": last_updated,
@@ -668,6 +680,8 @@ def mirror_dataset(
         if local_metadata is not None and local_metadata.exists():
             shutil.copy2(local_metadata, metadata_dest)
         else:
-            shutil.copy2(_pkg_data_path(source, task, dataset, "metadata.json"), metadata_dest)
+            shutil.copy2(
+                _pkg_data_path(source, task, dataset, "metadata.json"), metadata_dest
+            )
 
     return dataset_dir

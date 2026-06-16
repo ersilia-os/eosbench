@@ -7,37 +7,76 @@ def _rows_to_dict(rows):
 
 
 def test_leaderboard_rows_include_split_when_present():
-    rows = _rows_to_dict(_leaderboard_rows({
-        "leaderboard_value": 0.806, "leaderboard_metric": "ROC-AUC",
-        "leaderboard_split": "scaffold", "leaderboard_provider": "polaris",
-        "leaderboard_source": "Wu et al. 2018",
-    }))
+    rows = _rows_to_dict(
+        _leaderboard_rows(
+            {
+                "leaderboard_value": 0.806,
+                "leaderboard_metric": "ROC-AUC",
+                "leaderboard_split": "scaffold",
+                "leaderboard_provider": "polaris",
+                "leaderboard_source": "Wu et al. 2018",
+            }
+        )
+    )
     assert rows["leaderboard"] == "0.8060 (ROC-AUC)"
     assert rows["leaderboard_split"] == "scaffold"
     assert rows["leaderboard_provider"] == "polaris"
     # absent split/provider -> no row
-    bare = _rows_to_dict(_leaderboard_rows({"leaderboard_value": 0.5, "leaderboard_metric": "AUROC"}))
+    bare = _rows_to_dict(
+        _leaderboard_rows({"leaderboard_value": 0.5, "leaderboard_metric": "AUROC"})
+    )
     assert "leaderboard_split" not in bare
     assert "leaderboard_provider" not in bare
 
 
 def test_bundled_metadata_records_leaderboard_split():
     # MoleculeNet recommends scaffold for BACE, random for Tox21; TDC ADMET uses scaffold.
-    assert DatasetInfo("moleculenet", "classification", "bace").metadata["leaderboard_split"] == "scaffold"
-    assert DatasetInfo("moleculenet", "classification", "tox21").metadata["leaderboard_split"] == "random"
-    assert DatasetInfo("tdcommons", "classification", "ames").metadata["leaderboard_split"] == "scaffold"
+    assert (
+        DatasetInfo("moleculenet", "classification", "bace").metadata[
+            "leaderboard_split"
+        ]
+        == "scaffold"
+    )
+    assert (
+        DatasetInfo("moleculenet", "classification", "tox21").metadata[
+            "leaderboard_split"
+        ]
+        == "random"
+    )
+    assert (
+        DatasetInfo("tdcommons", "classification", "ames").metadata["leaderboard_split"]
+        == "scaffold"
+    )
 
 
 def test_bundled_metadata_records_leaderboard_provider():
     # Provenance: tdcommons ADMET scores come from Polaris; MoleculeNet from the paper.
-    assert DatasetInfo("tdcommons", "classification", "ames").metadata["leaderboard_provider"] == "polaris"
-    assert DatasetInfo("moleculenet", "classification", "bbbp").metadata["leaderboard_provider"] == "moleculenet"
+    assert (
+        DatasetInfo("tdcommons", "classification", "ames").metadata[
+            "leaderboard_provider"
+        ]
+        == "polaris"
+    )
+    assert (
+        DatasetInfo("moleculenet", "classification", "bbbp").metadata[
+            "leaderboard_provider"
+        ]
+        == "moleculenet"
+    )
     # A tdcommons dataset with no leaderboard anywhere stays blank.
-    assert DatasetInfo("tdcommons", "classification", "hiv").metadata["leaderboard_provider"] is None
+    assert (
+        DatasetInfo("tdcommons", "classification", "hiv").metadata[
+            "leaderboard_provider"
+        ]
+        is None
+    )
 
 
 def test_column_detail_shows_full_description_and_computes_ratio():
-    long_desc = "Adverse drug reactions in the MedDRA System Organ Class 'Hepatobiliary disorders'." * 2
+    long_desc = (
+        "Adverse drug reactions in the MedDRA System Organ Class 'Hepatobiliary disorders'."
+        * 2
+    )
     c = {
         "n_samples": 1427,
         "n_positives": 743,
@@ -48,10 +87,10 @@ def test_column_detail_shows_full_description_and_computes_ratio():
         "description_source": "MoleculeNet SIDER",
     }
     d = _rows_to_dict(_column_detail_rows(c))
-    assert d["n_samples"] == "1,427"             # grouped integer
-    assert d["ratio"] == "0.5207"                # computed n_pos / n_tot
+    assert d["n_samples"] == "1,427"  # grouped integer
+    assert d["ratio"] == "0.5207"  # computed n_pos / n_tot
     assert d["auroc (random split)"] == "0.8100 ± 0.0200"
-    assert d["description"] == long_desc          # full text, untruncated
+    assert d["description"] == long_desc  # full text, untruncated
     assert d["description_source"] == "MoleculeNet SIDER"
 
 

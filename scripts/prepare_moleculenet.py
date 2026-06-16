@@ -42,21 +42,33 @@ REGISTRY: dict[str, dict] = {
     # --- single-column families ---
     "bbbp": {"file": "BBBP.csv", "smiles_col": "smiles", "single": "p_np"},
     "bace": {"file": "bace.csv", "smiles_col": "mol", "single": "Class"},
-    "hiv":  {"file": "HIV.csv", "smiles_col": "smiles", "single": "HIV_active"},
+    "hiv": {"file": "HIV.csv", "smiles_col": "smiles", "single": "HIV_active"},
     # --- multi-column families ---
     "clintox": {
-        "file": "clintox.csv.gz", "smiles_col": "smiles",
+        "file": "clintox.csv.gz",
+        "smiles_col": "smiles",
         "columns": ["FDA_APPROVED", "CT_TOX"],
     },
     "tox21": {
-        "file": "tox21.csv.gz", "smiles_col": "smiles",
+        "file": "tox21.csv.gz",
+        "smiles_col": "smiles",
         "columns": [
-            "NR-AR", "NR-AR-LBD", "NR-AhR", "NR-Aromatase", "NR-ER", "NR-ER-LBD",
-            "NR-PPAR-gamma", "SR-ARE", "SR-ATAD5", "SR-HSE", "SR-MMP", "SR-p53",
+            "NR-AR",
+            "NR-AR-LBD",
+            "NR-AhR",
+            "NR-Aromatase",
+            "NR-ER",
+            "NR-ER-LBD",
+            "NR-PPAR-gamma",
+            "SR-ARE",
+            "SR-ATAD5",
+            "SR-HSE",
+            "SR-MMP",
+            "SR-p53",
         ],
     },
     "sider": {"file": "sider.csv.gz", "smiles_col": "smiles", "columns": None},
-    "muv":   {"file": "muv.csv.gz", "smiles_col": "smiles", "columns": None},
+    "muv": {"file": "muv.csv.gz", "smiles_col": "smiles", "columns": None},
     "toxcast": {"file": "toxcast_data.csv.gz", "smiles_col": "smiles", "columns": None},
 }
 
@@ -117,7 +129,11 @@ def load_leaderboard() -> dict:
 
 
 def prepare_set(
-    key: str, spec: dict, leaderboard: dict, n_folds: int, seed: int,
+    key: str,
+    spec: dict,
+    leaderboard: dict,
+    n_folds: int,
+    seed: int,
     compute_baseline: bool = True,
 ) -> int:
     """Prepare ONE family (≥1 binary tasks) from a MoleculeNet set. Returns 1 if written."""
@@ -155,7 +171,9 @@ def prepare_set(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Prepare MoleculeNet datasets for eosbench.")
+    parser = argparse.ArgumentParser(
+        description="Prepare MoleculeNet datasets for eosbench."
+    )
     parser.add_argument(
         "--datasets",
         type=str,
@@ -163,8 +181,12 @@ def main() -> None:
         help=f"Comma-separated set keys, or 'all'. Known: {', '.join(REGISTRY)}. "
         f"Default: {', '.join(DEFAULT_SETS)}.",
     )
-    parser.add_argument("--n_folds", type=int, default=5, help="Random CV folds (default 5).")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed (default 42).")
+    parser.add_argument(
+        "--n_folds", type=int, default=5, help="Random CV folds (default 5)."
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed (default 42)."
+    )
     parser.add_argument(
         "--no_baseline",
         action="store_true",
@@ -187,7 +209,11 @@ def main() -> None:
     for key in keys:
         print(f"\n== {key} ==")
         total += prepare_set(
-            key, REGISTRY[key], leaderboard, args.n_folds, args.seed,
+            key,
+            REGISTRY[key],
+            leaderboard,
+            args.n_folds,
+            args.seed,
             compute_baseline=not args.no_baseline,
         )
 

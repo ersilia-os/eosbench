@@ -21,8 +21,16 @@ import _prepare_common as common  # noqa: E402
 # Distinct-scaffold molecules: many positives, few negatives — the skewed shape that
 # made a naive size-descending scaffold split produce a single-class test set (BBBP).
 _POS_SMILES = [
-    "c1ccccc1", "c1ccncc1", "c1ccsc1", "c1ccoc1", "c1cc2ccccc2c1",
-    "C1CCCCC1", "C1CCNCC1", "C1CCOCC1", "c1ccc2ccccc2c1", "c1ccc2ncccc2c1",
+    "c1ccccc1",
+    "c1ccncc1",
+    "c1ccsc1",
+    "c1ccoc1",
+    "c1cc2ccccc2c1",
+    "C1CCCCC1",
+    "C1CCNCC1",
+    "C1CCOCC1",
+    "c1ccc2ccccc2c1",
+    "c1ccc2ncccc2c1",
 ]
 _NEG_SMILES = ["C1CCCC1", "C1CCNC1", "C1CCOC1"]
 
@@ -59,8 +67,10 @@ def test_make_random_folds_plain_covers_all_samples():
 
 
 def test_make_random_folds_is_deterministic():
-    assert common.make_random_folds(50, k=5, seed=42, stratify=None).tolist() == \
+    assert (
         common.make_random_folds(50, k=5, seed=42, stratify=None).tolist()
+        == common.make_random_folds(50, k=5, seed=42, stratify=None).tolist()
+    )
 
 
 def test_prepare_family_shares_split_across_tasks(tmp_path, monkeypatch):
@@ -74,11 +84,15 @@ def test_prepare_family_shares_split_across_tasks(tmp_path, monkeypatch):
     task_a = [1] * len(_POS_SMILES) + [0] * len(_NEG_SMILES)
     task_b = [1, 0] * (n // 2) + [1] * (n % 2)
     label_df = pd.DataFrame({"A": task_a, "B": [float(v) for v in task_b]})
-    label_df.loc[: 2, "B"] = np.nan  # vary missingness between tasks
+    label_df.loc[:2, "B"] = np.nan  # vary missingness between tasks
 
     out = common.prepare_family(
-        source="moleculenet", family="demo", smiles=smiles, label_df=label_df,
-        n_folds=3, seed=42,
+        source="moleculenet",
+        family="demo",
+        smiles=smiles,
+        label_df=label_df,
+        n_folds=3,
+        seed=42,
     )
 
     data = pd.read_csv(out / "data.csv")
@@ -88,13 +102,19 @@ def test_prepare_family_shares_split_across_tasks(tmp_path, monkeypatch):
 
     assert list(data.columns) == ["smiles", "A", "B"]
     assert set(folds.columns) == {"random_fold", "scaffold_split"}
-    assert len(folds) == len(data)            # one conserved split per molecule
+    assert len(folds) == len(data)  # one conserved split per molecule
     assert meta["n_columns"] == 2
     assert set(meta["columns"]) == {"A", "B"}
     assert meta["split"]["conserved"] is True
-    assert meta["split"]["stratified"] is False   # multi-task -> not stratified
-    assert data["B"].isna().any()             # NaN preserved for the unlabeled rows
-    assert (common.PKG_DATA_ROOT / "moleculenet" / "classification" / "demo" / "metadata.json").exists()
+    assert meta["split"]["stratified"] is False  # multi-task -> not stratified
+    assert data["B"].isna().any()  # NaN preserved for the unlabeled rows
+    assert (
+        common.PKG_DATA_ROOT
+        / "moleculenet"
+        / "classification"
+        / "demo"
+        / "metadata.json"
+    ).exists()
 
 
 def test_column_descriptions_for_curated_and_templated_sets():
@@ -117,16 +137,27 @@ def test_toxcast_legacy_endpoints_are_all_described():
     import moleculenet_descriptions as desc  # noqa: E402
 
     legacy = [
-        "ACEA_T47D_80hr_Negative", "ACEA_T47D_80hr_Positive",
-        "APR_Hepat_Apoptosis_24hr_up", "APR_Hepat_Apoptosis_48hr_up",
-        "APR_Hepat_CellLoss_24hr_dn", "APR_Hepat_CellLoss_48hr_dn",
-        "APR_Hepat_DNADamage_24hr_up", "APR_Hepat_DNADamage_48hr_up",
-        "APR_Hepat_DNATexture_24hr_up", "APR_Hepat_DNATexture_48hr_up",
-        "APR_Hepat_MitoFxnI_1hr_dn", "APR_Hepat_MitoFxnI_24hr_dn", "APR_Hepat_MitoFxnI_48hr_dn",
-        "APR_Hepat_NuclearSize_24hr_dn", "APR_Hepat_NuclearSize_48hr_dn",
-        "APR_Hepat_Steatosis_24hr_up", "APR_Hepat_Steatosis_48hr_up",
-        "TOX21_AR_LUC_MDAKB2_Antagonist", "TOX21_AR_LUC_MDAKB2_Antagonist2",
-        "TOX21_ERa_LUC_BG1_Agonist", "TOX21_ERa_LUC_BG1_Antagonist",
+        "ACEA_T47D_80hr_Negative",
+        "ACEA_T47D_80hr_Positive",
+        "APR_Hepat_Apoptosis_24hr_up",
+        "APR_Hepat_Apoptosis_48hr_up",
+        "APR_Hepat_CellLoss_24hr_dn",
+        "APR_Hepat_CellLoss_48hr_dn",
+        "APR_Hepat_DNADamage_24hr_up",
+        "APR_Hepat_DNADamage_48hr_up",
+        "APR_Hepat_DNATexture_24hr_up",
+        "APR_Hepat_DNATexture_48hr_up",
+        "APR_Hepat_MitoFxnI_1hr_dn",
+        "APR_Hepat_MitoFxnI_24hr_dn",
+        "APR_Hepat_MitoFxnI_48hr_dn",
+        "APR_Hepat_NuclearSize_24hr_dn",
+        "APR_Hepat_NuclearSize_48hr_dn",
+        "APR_Hepat_Steatosis_24hr_up",
+        "APR_Hepat_Steatosis_48hr_up",
+        "TOX21_AR_LUC_MDAKB2_Antagonist",
+        "TOX21_AR_LUC_MDAKB2_Antagonist2",
+        "TOX21_ERa_LUC_BG1_Agonist",
+        "TOX21_ERa_LUC_BG1_Antagonist",
     ]
     assert set(legacy) <= set(desc.TOXCAST_LEGACY)
     assert all(desc.TOXCAST_LEGACY[c].strip() for c in legacy)
@@ -144,8 +175,14 @@ def test_prepare_family_uses_injected_holdout(tmp_path, monkeypatch):
     holdout = np.array(["train"] * (len(smiles) - 3) + ["test"] * 3, dtype=object)
 
     out = common.prepare_family(
-        source="polaris", family="demo", smiles=smiles, label_df=label_df,
-        n_folds=3, seed=42, holdout=holdout, holdout_method="polaris",
+        source="polaris",
+        family="demo",
+        smiles=smiles,
+        label_df=label_df,
+        n_folds=3,
+        seed=42,
+        holdout=holdout,
+        holdout_method="polaris",
     )
 
     folds = pd.read_csv(out / "folds.csv")

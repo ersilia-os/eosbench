@@ -80,7 +80,9 @@ def _split_rows(benchmark) -> tuple[list[int], np.ndarray]:
     else:
         test_idx.update(int(i) for i in test)
     rows = sorted(set(train_idx) | test_idx)
-    holdout = np.array(["test" if i in test_idx else "train" for i in rows], dtype=object)
+    holdout = np.array(
+        ["test" if i in test_idx else "train" for i in rows], dtype=object
+    )
     return rows, holdout
 
 
@@ -104,7 +106,11 @@ def prepare_benchmark(
 
     target_cols = sorted(bench.target_cols)
     target_types = dict(getattr(bench, "target_types", {}) or {})
-    non_clf = [c for c in target_cols if c in target_types and not _is_classification(target_types[c])]
+    non_clf = [
+        c
+        for c in target_cols
+        if c in target_types and not _is_classification(target_types[c])
+    ]
     if non_clf:
         print(f"  [{benchmark_id}] skipped: non-classification targets {non_clf}")
         return 0
@@ -158,16 +164,24 @@ def prepare_benchmark(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Prepare Polaris benchmarks for eosbench.")
+    parser = argparse.ArgumentParser(
+        description="Prepare Polaris benchmarks for eosbench."
+    )
     parser.add_argument(
         "--datasets",
         type=str,
         default="",
         help="Comma-separated benchmark ids (owner/slug). Default: auto-discover all.",
     )
-    parser.add_argument("--limit", type=int, default=None, help="Only process the first N benchmarks.")
-    parser.add_argument("--n_folds", type=int, default=5, help="Random CV folds (default 5).")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed (default 42).")
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Only process the first N benchmarks."
+    )
+    parser.add_argument(
+        "--n_folds", type=int, default=5, help="Random CV folds (default 5)."
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed (default 42)."
+    )
     parser.add_argument(
         "--no_baseline",
         action="store_true",

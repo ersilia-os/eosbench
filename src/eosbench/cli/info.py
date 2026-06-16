@@ -14,11 +14,30 @@ _BASELINE_NOTE = (
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Show metadata for a single eosbench dataset.")
-    parser.add_argument("--source", type=str, required=True, help="Dataset source, e.g. tdcommons or moleculenet.")
-    parser.add_argument("--dataset", type=str, required=True, help="Dataset name, e.g. ames.")
-    parser.add_argument("--task", type=str, default="classification", help="Task type (default: classification).")
-    parser.add_argument("--column", type=str, default=None, help="For a multi-column family, show full details for one label column (untruncated).")
+    parser = argparse.ArgumentParser(
+        description="Show metadata for a single eosbench dataset."
+    )
+    parser.add_argument(
+        "--source",
+        type=str,
+        required=True,
+        help="Dataset source, e.g. tdcommons or moleculenet.",
+    )
+    parser.add_argument(
+        "--dataset", type=str, required=True, help="Dataset name, e.g. ames."
+    )
+    parser.add_argument(
+        "--task",
+        type=str,
+        default="classification",
+        help="Task type (default: classification).",
+    )
+    parser.add_argument(
+        "--column",
+        type=str,
+        default=None,
+        help="For a multi-column family, show full details for one label column (untruncated).",
+    )
     args = parser.parse_args()
 
     info = DatasetInfo(source=args.source, task=args.task, dataset=args.dataset)
@@ -37,7 +56,9 @@ def main():
                 f"unknown column {args.column!r} for {args.source}/{args.dataset}. "
                 f"Available: {', '.join(columns)}"
             )
-        _print_column_detail(console, args.source, args.dataset, args.column, columns[args.column])
+        _print_column_detail(
+            console, args.source, args.dataset, args.column, columns[args.column]
+        )
         console.print(_BASELINE_NOTE)
         return
 
@@ -56,8 +77,16 @@ def main():
         console.print(summary)
 
         per_column = Table(title="columns")
-        for col in ("column", "n", "pos", "neg", "auroc (random split)", "auprc (random split)",
-                    "auroc (scaffold split)", "description"):
+        for col in (
+            "column",
+            "n",
+            "pos",
+            "neg",
+            "auroc (random split)",
+            "auprc (random split)",
+            "auroc (scaffold split)",
+            "description",
+        ):
             per_column.add_column(col)
         for name, c in meta["columns"].items():
             per_column.add_row(
@@ -67,7 +96,9 @@ def main():
                 str(c.get("n_negatives", "-")),
                 _pm(c.get("random_auroc_mean"), c.get("random_auroc_std")),
                 _pm(c.get("random_aupr_mean"), c.get("random_aupr_std")),
-                f"{c['scaffold_auroc']:.4f}" if c.get("scaffold_auroc") is not None else "-",
+                f"{c['scaffold_auroc']:.4f}"
+                if c.get("scaffold_auroc") is not None
+                else "-",
                 _truncate(c.get("description"), 70),
             )
         console.print(per_column)
@@ -82,14 +113,14 @@ def main():
     table.add_column("field", style="bold cyan")
     table.add_column("value")
     fields = [
-        ("source",       meta.get("source", "-")),
-        ("dataset",      meta.get("dataset", "-")),
-        ("task",         args.task),
-        ("n_samples",    str(meta.get("n_samples", "-"))),
-        ("n_positives",  str(meta.get("n_positives", "-"))),
-        ("n_negatives",  str(meta.get("n_negatives", "-"))),
-        ("auroc",        _pm(meta.get("auroc_mean"), meta.get("auroc_std"))),
-        ("auprc",        _pm(meta.get("aupr_mean"), meta.get("aupr_std"))),
+        ("source", meta.get("source", "-")),
+        ("dataset", meta.get("dataset", "-")),
+        ("task", args.task),
+        ("n_samples", str(meta.get("n_samples", "-"))),
+        ("n_positives", str(meta.get("n_positives", "-"))),
+        ("n_negatives", str(meta.get("n_negatives", "-"))),
+        ("auroc", _pm(meta.get("auroc_mean"), meta.get("auroc_std"))),
+        ("auprc", _pm(meta.get("aupr_mean"), meta.get("aupr_std"))),
     ]
     fields += _leaderboard_rows(meta)
     fields += _description_rows(meta)
@@ -156,12 +187,22 @@ def _count(v) -> str:
 # Keys rendered by curated rows below; any other key is dumped generically so
 # fields added to the metadata later still show up in the --column view.
 _COLUMN_CURATED_KEYS = {
-    "n_samples", "n_positives", "n_negatives",
-    "random_auroc_mean", "random_auroc_std", "random_aupr_mean", "random_aupr_std",
-    "scaffold_auroc", "scaffold_aupr",
-    "leaderboard_value", "leaderboard_metric", "leaderboard_split", "leaderboard_provider",
+    "n_samples",
+    "n_positives",
+    "n_negatives",
+    "random_auroc_mean",
+    "random_auroc_std",
+    "random_aupr_mean",
+    "random_aupr_std",
+    "scaffold_auroc",
+    "scaffold_aupr",
+    "leaderboard_value",
+    "leaderboard_metric",
+    "leaderboard_split",
+    "leaderboard_provider",
     "leaderboard_source",
-    "description", "description_source",
+    "description",
+    "description_source",
 }
 
 
@@ -176,8 +217,14 @@ def _column_detail_rows(c: dict) -> list[tuple[str, str]]:
     if n_tot and n_pos is not None:
         rows.append(("ratio", f"{n_pos / n_tot:.4f}"))
     rows += [
-        ("auroc (random split)", _pm(c.get("random_auroc_mean"), c.get("random_auroc_std"))),
-        ("auprc (random split)", _pm(c.get("random_aupr_mean"), c.get("random_aupr_std"))),
+        (
+            "auroc (random split)",
+            _pm(c.get("random_auroc_mean"), c.get("random_auroc_std")),
+        ),
+        (
+            "auprc (random split)",
+            _pm(c.get("random_aupr_mean"), c.get("random_aupr_std")),
+        ),
     ]
     if c.get("scaffold_auroc") is not None:
         rows.append(("auroc (scaffold split)", f"{c['scaffold_auroc']:.4f}"))
@@ -192,7 +239,9 @@ def _column_detail_rows(c: dict) -> list[tuple[str, str]]:
     return rows
 
 
-def _print_column_detail(console, source: str, dataset: str, column: str, c: dict) -> None:
+def _print_column_detail(
+    console, source: str, dataset: str, column: str, c: dict
+) -> None:
     """Vertical, untruncated detail table for one label column of a family."""
     table = Table(title=f"{source}/{dataset} — {column}", show_header=False)
     table.add_column("field", style="bold cyan", no_wrap=True)

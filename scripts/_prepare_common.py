@@ -89,7 +89,9 @@ def featurize_morgan(mols: list[Chem.Mol]) -> np.ndarray:
     out = np.zeros((len(mols), MORGAN_NBITS), dtype=np.int64)
     for i, mol in enumerate(mols):
         try:
-            fp = AllChem.GetHashedMorganFingerprint(mol, MORGAN_RADIUS, nBits=MORGAN_NBITS)
+            fp = AllChem.GetHashedMorganFingerprint(
+                mol, MORGAN_RADIUS, nBits=MORGAN_NBITS
+            )
             arr = np.zeros((MORGAN_NBITS,), dtype=np.int64)
             ConvertToNumpyArray(fp, arr)
             out[i] = arr
@@ -145,7 +147,9 @@ def _murcko_groups(mols: list[Chem.Mol]) -> list[list[int]]:
     scaffolds: dict[str, list[int]] = {}
     for i, mol in enumerate(mols):
         try:
-            scaffold = MurckoScaffold.MurckoScaffoldSmiles(mol=mol, includeChirality=False)
+            scaffold = MurckoScaffold.MurckoScaffoldSmiles(
+                mol=mol, includeChirality=False
+            )
         except Exception:  # noqa: BLE001 - RDKit can raise on odd structures; treat as own scaffold
             scaffold = f"__unscaffolded_{i}"
         scaffolds.setdefault(scaffold, []).append(i)
@@ -241,7 +245,9 @@ def _rf(seed: int) -> RandomForestClassifier:
     return RandomForestClassifier(n_estimators=300, n_jobs=-1, random_state=seed)
 
 
-def rf_baseline_cv(X: np.ndarray, y: np.ndarray, random_fold: np.ndarray, seed: int = 42):
+def rf_baseline_cv(
+    X: np.ndarray, y: np.ndarray, random_fold: np.ndarray, seed: int = 42
+):
     """RandomForest baseline over random K-fold CV. Returns AUROC/AUPR mean & std."""
     aurocs, auprs = [], []
     for k in sorted(set(random_fold.tolist())):
@@ -253,7 +259,12 @@ def rf_baseline_cv(X: np.ndarray, y: np.ndarray, random_fold: np.ndarray, seed: 
         aurocs.append(roc_auc_score(y[te], proba))
         auprs.append(average_precision_score(y[te], proba))
     if not aurocs:
-        return {"auroc_mean": None, "auroc_std": None, "aupr_mean": None, "aupr_std": None}
+        return {
+            "auroc_mean": None,
+            "auroc_std": None,
+            "aupr_mean": None,
+            "aupr_std": None,
+        }
     return {
         "auroc_mean": float(np.mean(aurocs)),
         "auroc_std": float(np.std(aurocs)),
@@ -262,7 +273,9 @@ def rf_baseline_cv(X: np.ndarray, y: np.ndarray, random_fold: np.ndarray, seed: 
     }
 
 
-def rf_baseline_holdout(X: np.ndarray, y: np.ndarray, scaffold: np.ndarray, seed: int = 42):
+def rf_baseline_holdout(
+    X: np.ndarray, y: np.ndarray, scaffold: np.ndarray, seed: int = 42
+):
     """RandomForest baseline on the scaffold holdout (fit on train, score on test)."""
     tr, te = scaffold == "train", scaffold == "test"
     if (
@@ -287,7 +300,12 @@ def today_iso() -> str:
     return _dt.date.today().isoformat()
 
 
-_NO_METRICS_CV = {"auroc_mean": None, "auroc_std": None, "aupr_mean": None, "aupr_std": None}
+_NO_METRICS_CV = {
+    "auroc_mean": None,
+    "auroc_std": None,
+    "aupr_mean": None,
+    "aupr_std": None,
+}
 _NO_METRICS_HOLD = {"auroc": None, "aupr": None}
 
 
@@ -307,8 +325,16 @@ def _build_task_block(
     of which metric the source leaderboard favours. With ``compute_baseline=False`` the
     metrics are recorded as ``None`` (fast path for very large families like ToxCast).
     """
-    cv = rf_baseline_cv(Xb, y, random_fold, seed=seed) if compute_baseline else _NO_METRICS_CV
-    hold = rf_baseline_holdout(Xb, y, scaffold, seed=seed) if compute_baseline else _NO_METRICS_HOLD
+    cv = (
+        rf_baseline_cv(Xb, y, random_fold, seed=seed)
+        if compute_baseline
+        else _NO_METRICS_CV
+    )
+    hold = (
+        rf_baseline_holdout(Xb, y, scaffold, seed=seed)
+        if compute_baseline
+        else _NO_METRICS_HOLD
+    )
     test_mask = scaffold == "test"
     n = int(len(y))
     n_pos = int((y == 1).sum())
@@ -391,7 +417,9 @@ def prepare_family(
         scaffold = np.asarray(holdout, dtype=object)[keep]
         scaffold_method = holdout_method
     else:
-        scaffold = scaffold_split(mols, stratify)  # stratify (or None) drives class-balancing
+        scaffold = scaffold_split(
+            mols, stratify
+        )  # stratify (or None) drives class-balancing
         scaffold_method = "stratified-murcko" if stratify is not None else "murcko"
 
     features = {feat: FEATURIZERS[feat](mols) for feat in featurizers}
@@ -403,8 +431,14 @@ def prepare_family(
         mask = label_df[col].notna().to_numpy()
         y_c = label_df.loc[mask, col].to_numpy().astype(int)
         column_blocks[col] = _build_task_block(
-            Xb_all[mask], y_c, random_fold[mask], scaffold[mask],
-            scaffold_method, leaderboard, seed, compute_baseline,
+            Xb_all[mask],
+            y_c,
+            random_fold[mask],
+            scaffold[mask],
+            scaffold_method,
+            leaderboard,
+            seed,
+            compute_baseline,
         )
 
     metadata = {
@@ -423,8 +457,12 @@ def prepare_family(
         },
         "columns": column_blocks,
         # Family aggregates (mean over columns) consumed by the collapsed catalog row.
-        "auroc_mean": _mean_ignore_none(b["random_auroc_mean"] for b in column_blocks.values()),
-        "aupr_mean": _mean_ignore_none(b["random_aupr_mean"] for b in column_blocks.values()),
+        "auroc_mean": _mean_ignore_none(
+            b["random_auroc_mean"] for b in column_blocks.values()
+        ),
+        "aupr_mean": _mean_ignore_none(
+            b["random_aupr_mean"] for b in column_blocks.values()
+        ),
         "leaderboard_metric": (leaderboard or {}).get("metric"),
         "leaderboard_value": (leaderboard or {}).get("value"),
         "leaderboard_split": (leaderboard or {}).get("split"),
