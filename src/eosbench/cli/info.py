@@ -3,7 +3,7 @@ import argparse
 from rich.console import Console
 from rich.table import Table
 
-from ..dataset import DatasetInfo
+from ..dataset import DatasetInfo, resolve_id
 
 # Shown under the metric tables. Mirrors the wording in `eosbench catalog --help`.
 def _baseline_note(task: str) -> str:
@@ -20,13 +20,20 @@ def main():
         description="Show metadata for a single eosbench dataset."
     )
     parser.add_argument(
-        "--source",
+        "--id",
         type=str,
-        required=True,
-        help="Dataset source, e.g. tdcommons or moleculenet.",
+        default=None,
+        help="eosbench identifier (resolves source/dataset/task automatically, and "
+        "--column too if it's a column id). Use instead of --source/--dataset.",
     )
     parser.add_argument(
-        "--dataset", type=str, required=True, help="Dataset name, e.g. ames."
+        "--source",
+        type=str,
+        default=None,
+        help="Dataset source, e.g. tdcommons or moleculenet (not needed with --id).",
+    )
+    parser.add_argument(
+        "--dataset", type=str, default=None, help="Dataset name, e.g. ames (not needed with --id)."
     )
     parser.add_argument(
         "--task",
@@ -41,6 +48,17 @@ def main():
         help="For a multi-column family, show full details for one label column (untruncated).",
     )
     args = parser.parse_args()
+
+    if args.id is not None:
+        try:
+            hit = resolve_id(args.id)
+        except KeyError as e:
+            parser.error(str(e))
+        args.source, args.dataset, args.task = hit["source"], hit["dataset"], hit["task"]
+        if args.column is None:
+            args.column = hit["column"]
+    elif not (args.source and args.dataset):
+        parser.error("provide --id, or both --source and --dataset.")
 
     info = DatasetInfo(source=args.source, task=args.task, dataset=args.dataset)
     meta = info.metadata
