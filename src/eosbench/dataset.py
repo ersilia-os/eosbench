@@ -29,6 +29,20 @@ def _cache_path(source: str, task: str, dataset: str, filename: str) -> str:
     return path
 
 
+def _rmdir_if_empty_chain(path: Path, stop: Path) -> None:
+    """Remove ``path`` and now-empty parent directories, without touching ``stop`` itself.
+
+    Used to clean up the directory chain a failed fetch would otherwise leave behind
+    (created eagerly so a download has somewhere to write to). A directory holding any
+    file — including one left by a partially successful fetch — is kept as-is.
+    """
+    path = Path(path)
+    stop = Path(stop)
+    while path != stop and path.is_dir() and not any(path.iterdir()):
+        path.rmdir()
+        path = path.parent
+
+
 def _download_to(
     source: str,
     task: str,
@@ -45,7 +59,11 @@ def _download_to(
         try:
             urlretrieve(url, dest)
         except URLError as e:
-            logger.error(f"Failed to download {url}")
+            if getattr(e, "code", None) == 404:
+                raise RuntimeError(
+                    f"{source}/{task}/{dataset} is not available on S3 yet (no {filename} "
+                    "found). Run `eosbench catalog` to check current availability."
+                ) from e
             raise RuntimeError(f"Failed to download {url}: {e}") from e
         logger.success(f"Saved {filename} to cache")
     return dest
@@ -81,7 +99,11 @@ def _copy_from_dir(
 
 def _fetch(source: str, task: str, dataset: str, filename: str) -> str:
     dest = _cache_path(source, task, dataset, filename)
-    return _download_to(source, task, dataset, filename, dest)
+    try:
+        return _download_to(source, task, dataset, filename, dest)
+    except Exception:
+        _rmdir_if_empty_chain(Path(dest).parent, Path(CACHE_DIR))
+        raise
 
 
 def _pkg_data_path(source: str, task: str, dataset: str, filename: str) -> str:
@@ -743,26 +765,30 @@ def mirror_dataset(
         else:
             _download_to(source, task, dataset, filename, dest)
 
-    fetch("data.csv")
-    fetch("folds.csv")
+    try:
+        fetch("data.csv")
+        fetch("folds.csv")
 
-    if featurization is not None:
-        fetch(f"{featurization}.npy")
+        if featurization is not None:
+            fetch(f"{featurization}.npy")
 
-    # metadata.json (skip-if-exists, like the data files): prefer a copy from --from_dir,
-    # else fall back to the packaged metadata.
-    metadata_dest = dataset_dir / "metadata.json"
-    if not metadata_dest.exists():
-        local_metadata = (
-            Path(from_dir) / source / task / dataset / "metadata.json"
-            if from_dir is not None
-            else None
-        )
-        if local_metadata is not None and local_metadata.exists():
-            shutil.copy2(local_metadata, metadata_dest)
-        else:
-            shutil.copy2(
-                _pkg_data_path(source, task, dataset, "metadata.json"), metadata_dest
+        # metadata.json (skip-if-exists, like the data files): prefer a copy from --from_dir,
+        # else fall back to the packaged metadata.
+        metadata_dest = dataset_dir / "metadata.json"
+        if not metadata_dest.exists():
+            local_metadata = (
+                Path(from_dir) / source / task / dataset / "metadata.json"
+                if from_dir is not None
+                else None
             )
+            if local_metadata is not None and local_metadata.exists():
+                shutil.copy2(local_metadata, metadata_dest)
+            else:
+                shutil.copy2(
+                    _pkg_data_path(source, task, dataset, "metadata.json"), metadata_dest
+                )
+    except Exception:
+        _rmdir_if_empty_chain(dataset_dir, Path(output_dir))
+        raise
 
     return dataset_dir

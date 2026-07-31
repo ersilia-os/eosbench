@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 from ..dataset import mirror_dataset, resolve_id, FEATURIZATIONS
 from ..utils.logging import logger
@@ -65,14 +66,18 @@ def main():
 
     featurization = None if args.featurization.lower() == "none" else args.featurization
 
-    dest = mirror_dataset(
-        source=source,
-        dataset=dataset,
-        featurization=featurization,
-        output_dir=args.output_dir,
-        task=task,
-        from_dir=args.from_dir,
-    )
+    try:
+        dest = mirror_dataset(
+            source=source,
+            dataset=dataset,
+            featurization=featurization,
+            output_dir=args.output_dir,
+            task=task,
+            from_dir=args.from_dir,
+        )
+    except RuntimeError as e:
+        logger.error(str(e))
+        sys.exit(1)
     logger.success(f"Dataset saved to {dest}")
 
 
