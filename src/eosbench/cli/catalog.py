@@ -1,5 +1,6 @@
 import argparse
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 from rich import box
@@ -7,7 +8,7 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
-from ..dataset import get_catalog
+from ..dataset import get_catalog, check_availability
 
 # Columns that may appear in a get_catalog() frame (collapsed or expand=True,
 # classification or regression). --sort_by is validated against the actual
@@ -50,6 +51,7 @@ DISPLAY_NAMES = {
     "n_columns": "columns",
     "leaderboard_score": "lb_score",
     "leaderboard_metric": "lb_metric",
+    "available": "on S3",
 }
 
 
@@ -298,6 +300,28 @@ def _task_cell(v) -> str:
 _RENDERERS["task"] = lambda r: _task_cell(r.get("task"))
 
 
+def _available_cell(v) -> str:
+    return "[green]✓[/green]" if v else "[red]✗[/red]"
+
+
+_RENDERERS["available"] = lambda r: _available_cell(r.get("available"))
+
+
+def _availability_map(df) -> dict:
+    """Live S3 HEAD-probe of every distinct (source, task, name) family in ``df``.
+
+    One probe per *family*, not per row — a multi-column family (e.g. toxcast's 617
+    columns under --expand) would otherwise fire the same check hundreds of times. Run
+    concurrently since this is a live network call per family.
+    """
+    keys = sorted(set(zip(df["source"], df["task"], df["name"])))
+    if not keys:
+        return {}
+    with ThreadPoolExecutor(max_workers=min(16, len(keys))) as pool:
+        results = pool.map(lambda k: check_availability(*k), keys)
+    return dict(zip(keys, results))
+
+
 def _display_columns(df):
     """Build the ordered list of (header, justify, render(row)) for the given frame.
 
@@ -364,6 +388,8 @@ columns (which appear depends on --task; --sort_by key in parentheses):
   leaderboard   Best published score + its metric, e.g. "0.871 AUROC", where known.
                 (sort with --sort_by leaderboard_score)
   last_updated  Date the dataset entry was last refreshed (YYYY-MM-DD).
+  on S3         Green check / red cross: whether the dataset is present on the public
+                S3 bucket right now. [--check_availability only]
 
 The auroc/auprc/rmse/r2 columns are a RandomForest baseline averaged over random
 K-fold cross-validation — a reference floor, not the best published model. The
@@ -381,6 +407,7 @@ examples:
                                                     strong baselines, best first
   eosbench catalog --sort_by n_tot --desc --limit 5  the 5 largest datasets
   eosbench catalog --expand                          one row per label column (multi-column sets)
+  eosbench catalog --name cyp --check_availability   also show live S3 availability
 
 Threshold filters drop datasets with a missing value for that column (e.g.
 --min_auroc skips datasets with no recorded AUROC). Filters combine with AND.
@@ -534,6 +561,16 @@ def main():
         help="Show only the first N rows (after filtering and sorting).",
     )
 
+    live = parser.add_argument_group("live checks")
+    live.add_argument(
+        "--check_availability",
+        action="store_true",
+        help="Live-check whether each shown dataset is present on the public S3 bucket "
+        "yet, adding an 'on S3' column (green check / red cross). One HTTP HEAD request "
+        "per dataset family shown (deduplicated, run concurrently) — needs network access "
+        "and adds latency; off by default.",
+    )
+
     args = parser.parse_args()
 
     df = get_catalog(source=args.source, task=args.task, expand=args.expand)
@@ -563,6 +600,15 @@ def main():
         parser.error(str(e))
 
     shown = full.head(args.limit) if args.limit is not None else full
+
+    if args.check_availability and not shown.empty:
+        n_families = shown[["source", "task", "name"]].drop_duplicates().shape[0]
+        print(f"Checking S3 availability for {n_families} dataset(s)...", file=sys.stderr)
+        avail_map = _availability_map(shown)
+        shown = shown.copy()
+        shown["available"] = [
+            avail_map[key] for key in zip(shown["source"], shown["task"], shown["name"])
+        ]
 
     spec = _display_columns(shown)
     table = Table(

@@ -6,7 +6,7 @@ import os
 from importlib import resources
 from pathlib import Path
 from urllib.error import URLError
-from urllib.request import urlretrieve
+from urllib.request import Request, urlopen, urlretrieve
 
 import numpy as np
 import pandas as pd
@@ -41,6 +41,27 @@ def _rmdir_if_empty_chain(path: Path, stop: Path) -> None:
     while path != stop and path.is_dir() and not any(path.iterdir()):
         path.rmdir()
         path = path.parent
+
+
+def _head_ok(url: str, timeout: float = 15.0) -> bool:
+    """True if a HEAD request to ``url`` returns HTTP 200 (object exists on S3)."""
+    try:
+        with urlopen(Request(url, method="HEAD"), timeout=timeout) as resp:
+            return resp.status == 200
+    except (URLError, OSError, ValueError):
+        return False
+
+
+def check_availability(source: str, task: str, dataset: str, timeout: float = 15.0) -> bool:
+    """True if this dataset family is present on the public S3 bucket right now.
+
+    Performs a live network HEAD request against the family's ``data.csv`` — the same
+    check the catalog website (``eosbench catalog`` docs, ``site/index.html``) runs. This
+    is a network call: use it sparingly (e.g. behind an opt-in CLI flag), not on every
+    catalog load.
+    """
+    url = f"{S3_BASE}/{source}/{task}/{dataset}/data.csv"
+    return _head_ok(url, timeout=timeout)
 
 
 def _download_to(

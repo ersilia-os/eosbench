@@ -22,11 +22,9 @@ import datetime as _dt
 import json
 import math
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import Request, urlopen
 
 from eosbench import get_catalog, DatasetInfo
-from eosbench.dataset import S3_BASE, catalog_columns
+from eosbench.dataset import S3_BASE, catalog_columns, _head_ok
 
 TASKS = ("classification", "regression")
 
@@ -36,15 +34,6 @@ for _task in TASKS:
     for _col in catalog_columns(_task):
         if _col not in _UNION_KEYS:
             _UNION_KEYS.append(_col)
-
-
-def _head_ok(url: str, timeout: float = 15.0) -> bool:
-    """True if a HEAD request to ``url`` returns HTTP 200 (object exists on S3)."""
-    try:
-        with urlopen(Request(url, method="HEAD"), timeout=timeout) as resp:
-            return resp.status == 200
-    except (URLError, OSError, ValueError):
-        return False
 
 
 def _data_url(source: str, task: str, dataset: str) -> str:
