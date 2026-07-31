@@ -28,10 +28,19 @@ dev = [
 ]
 # Tooling for building new datasets (scripts/prepare_*.py). Not needed to consume eosbench.
 prepare = [
-  "rdkit",
+  # Pinned: rdkit>=2026.3 raises RuntimeError("bad bond stereo") in
+  # MurckoScaffold.MurckoScaffoldSmiles for a narrow class of cross-conjugated stereo
+  # bonds (e.g. some tdcommons/ames molecules) that 2025.9.x handles fine. Re-evaluate
+  # the pin once that regression is fixed upstream.
+  "rdkit==2025.9.6",
   "scikit-learn",
   "polaris-lib",
-  "PyTDC",
+  # Pinned: PyTDC>=1.0 pulls in an unrelated, much heavier dependency tree (transformers,
+  # datasets, cellxgene-census, ...) for modalities eosbench doesn't use, and several 1.x
+  # releases don't support Python 3.12; some don't even install (cellxgene-census pin
+  # orphaned on PyPI). 0.3.6 is the newest release that is both Python-3.12-compatible
+  # and installable.
+  "PyTDC==0.3.6",
 ]
 
 [project.scripts]

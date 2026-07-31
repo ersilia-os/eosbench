@@ -654,11 +654,9 @@ def _fmt(v) -> str:
 
 
 def print_upload_hint() -> None:
-    """Print the manual S3 upload command (no upload tooling lives in this repo)."""
+    """Print the command to publish newly prepared datasets via eosvc."""
     print(
-        "\nTo publish, upload the per-dataset files to the public bucket, e.g.:\n"
-        f"  aws s3 sync {DATA_ROOT} s3://eosvc-public/eosbench/data \\\n"
-        "    --exclude '*' --include '*/data.csv' --include '*/folds.csv' "
-        "--include '*.npy' --include '*/metadata.json'\n"
+        "\nTo publish, run from the repo root:\n"
+        "  eosvc upload --path data/\n"
         "The bundled src/eosbench/_data/**/metadata.json is committed with the package."
     )
