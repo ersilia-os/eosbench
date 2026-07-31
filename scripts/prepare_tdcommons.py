@@ -43,6 +43,12 @@ SOURCE = "tdcommons"
 TASK = "classification"
 HOLDOUT_METHOD = "tdc-scaffold"
 LEADERBOARD_JSON = Path(__file__).resolve().parent / "tdcommons_leaderboard.json"
+# PyTDC's dataset loaders default to path="./data" for their own raw-download cache.
+# common.DATA_ROOT is also "./data" (relative to the repo root) -- the exact directory
+# prepare_family() writes eosbench's own output into and that later gets published wholesale
+# (e.g. `eosvc upload --path data/`). Left at the default, TDC's raw *.tab cache lands
+# directly inside that tree. Redirect it to a sibling, un-published cache dir instead.
+TDC_RAW_CACHE = common.REPO_ROOT / ".tdc_raw_cache"
 
 # TDC single_pred groups of single-input SMILES datasets we mine for binary classification:
 # ADME, Tox (ADMET properties) and HTS (high-throughput screening bioassays). Regression
@@ -86,7 +92,7 @@ def prepare_one(
     """Prepare ONE dataset. Returns 1 if written, 0 if skipped (reason logged)."""
     cls = _group_class(group)
     try:
-        d = cls(name=name)
+        d = cls(name=name, path=str(TDC_RAW_CACHE))
     except Exception as e:  # noqa: BLE001 - e.g. multi-label datasets needing label_name
         print(f"  [{name}] skipped: load failed ({e})")
         return 0

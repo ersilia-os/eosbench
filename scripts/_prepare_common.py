@@ -656,7 +656,9 @@ def _fmt(v) -> str:
 def print_upload_hint() -> None:
     """Print the command to publish newly prepared datasets via eosvc."""
     print(
-        "\nTo publish, run from the repo root:\n"
-        "  eosvc upload --path data/\n"
+        "\nTo publish, run from the repo root, scoped to what you just prepared, e.g.:\n"
+        "  eosvc upload --path data/<source>/<task>/<name>\n"
+        "(avoid a blanket `--path data/`: raw prep caches such as data/_raw/ don't belong "
+        "on the public bucket.)\n"
         "The bundled src/eosbench/_data/**/metadata.json is committed with the package."
     )

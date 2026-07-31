@@ -1,4 +1,5 @@
 data/
+.tdc_raw_cache/
 
 # Python
 __pycache__/
