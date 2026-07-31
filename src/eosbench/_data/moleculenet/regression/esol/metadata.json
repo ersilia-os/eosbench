@@ -1,0 +1,44 @@
+{
+  "source": "moleculenet",
+  "dataset": "esol",
+  "task": "regression",
+  "last_updated": "2026-06-17",
+  "n_molecules": 1128,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "murcko",
+    "conserved": true,
+    "stratified": false
+  },
+  "columns": {
+    "esol": {
+      "n_samples": 1128,
+      "skewness": -0.49171512649022947,
+      "random_rmse_mean": 0.8987441250574685,
+      "random_rmse_std": 0.043301398963897585,
+      "random_r2_mean": 0.8143554716920084,
+      "random_r2_std": 0.0189415967237427,
+      "scaffold_rmse": 1.112634563956679,
+      "scaffold_r2": 0.6917963081715819,
+      "scaffold_split_method": "murcko",
+      "leaderboard_metric": "RMSE",
+      "leaderboard_value": 0.58,
+      "leaderboard_split": "random",
+      "leaderboard_provider": "moleculenet",
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model"
+    }
+  },
+  "rmse_mean": 0.8987441250574685,
+  "r2_mean": 0.8143554716920084,
+  "leaderboard_metric": "RMSE",
+  "leaderboard_value": 0.58,
+  "leaderboard_split": "random",
+  "leaderboard_provider": "moleculenet",
+  "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model",
+  "size_bytes": 20419483
+}

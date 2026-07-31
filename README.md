@@ -57,11 +57,10 @@ The `load_dataset` function uses the same local cache (`~/.cache/eosbench/`) as 
 
 Browse everything online at **[ersilia-os.github.io/eosbench](https://ersilia-os.github.io/eosbench/)** (see [Catalog website](#catalog-website)).
 
-`eosbench` ships with metadata for classification datasets from several sources:
+`eosbench` ships with metadata for classification and regression datasets from several sources:
 
 - **tdcommons** — single-input SMILES binary-classification datasets from [Therapeutics Data Commons](https://tdcommons.ai/): ADMET properties (Ames, hERG, BBB, CYP450, …) plus HTS bioassays (SARS-CoV-2, Butkiewicz panel, HIV), spanning ~880 to ~340k molecules. Built by `scripts/prepare_tdcommons.py`
-- **MoleculeNet** — BBBP, BACE, HIV, Tox21, ClinTox, SIDER, MUV, ToxCast
-- **Polaris** — single-input, binary-classification benchmarks auto-discovered from the [Polaris Hub](https://polarishub.io/)
+- **MoleculeNet** — *classification*: BBBP, BACE, HIV, Tox21, ClinTox, SIDER, MUV, ToxCast. *Regression*: ESOL, FreeSolv, Lipophilicity (single-target solubility/logD/hydration) and QM8/QM9 (multi-target quantum properties). Regression sets record a RandomForest **RMSE/R²** baseline, with curated RMSE leaderboard references for the three solubility-type sets.
 
 Datasets are organized as **families**. A family is a collection of one or more binary
 label **columns** (endpoints) over a *shared* set of molecules. Single-column sets
@@ -94,8 +93,10 @@ Pass `expand=True` for **one row per column**.
 ```python
 from eosbench import get_catalog, list_columns
 
-catalog = get_catalog()                       # one row per family
+catalog = get_catalog()                       # one row per family (classification)
+catalog = get_catalog(task="all")             # classification + regression together
 catalog = get_catalog(source="tdcommons")     # filter by source
+catalog = get_catalog(task="regression")      # regression only
 catalog = get_catalog(expand=True)            # one row per label column
 
 list_columns("moleculenet", "tox21")          # ["NR-AR", "NR-AR-LBD", ...]
@@ -103,24 +104,35 @@ list_columns("moleculenet", "tox21")          # ["NR-AR", "NR-AR-LBD", ...]
 
 The metric columns depend on `task` — classification reports `auroc`/`auprc`,
 regression reports `rmse`/`r2`, and the class-balance columns (`n_pos`, `ratio`)
-appear for classification only.
+appear for classification only. `task="all"` returns both in one frame with the
+union of columns (metrics that don't apply to a row are blank). The `eosbench
+catalog` CLI **defaults to `--task all`** so every dataset shows at once; pass
+`--task classification` or `--task regression` to narrow it.
 
 Columns (collapsed, classification):
 
 | column | description |
 |--------|-------------|
+| `id` | deterministic short eosbench identifier (e.g. `bed0959b`); `get_catalog(expand=True)` gives a per-column id. Fetch with `eosbench fetch --id <id>` |
 | `name` | family name (shown as `dataset` in the CLI table) |
-| `source` | `"tdcommons"`, `"moleculenet"`, `"polaris"` |
+| `source` | `"tdcommons"`, `"moleculenet"` (CLI renders `task` as a `cls`/`reg` tag) |
 | `task` | `"classification"` or `"regression"` |
 | `n_columns` | number of label columns in the family |
 | `n_tot` | total molecules (or samples for single-column) |
-| `n_pos` | positive samples (classification only) |
+| `size` | full on-disk size of the dataset including the fingerprint matrices (e.g. `126 MB`) |
+| `n_pos` | positive samples (classification only; blank for regression) |
 | `auroc` | mean baseline AUROC (averaged over columns) |
 | `auprc` | mean baseline AUPRC (averaged over columns) |
 | `ratio` | positive class ratio, `n_pos / n_tot` (classification only) |
-| `leaderboard_score` | best published result, where known (`lb_score` in the CLI table) |
-| `leaderboard_metric` | metric `leaderboard_score` is measured in, e.g. `ROC-AUC` (`lb_metric` in the CLI) |
+| `leaderboard_score` | best published result, where known (the CLI merges this with the metric into one `leaderboard` column, e.g. `0.871 AUROC`) |
+| `leaderboard_metric` | metric `leaderboard_score` is measured in, e.g. `AUROC` |
 | `last_updated` | date the family was last prepared (ISO `YYYY-MM-DD`) |
+
+In the **CLI table** the task-specific columns are merged so a mixed classification/regression
+view stays uniform: `ratio`+`skew` render as one task-aware `balance` column (a class-balance
+bar for classification, a center-anchored skewness bar for regression), and the metric columns
+render as one `baseline` column (`AUROC/AUPRC` or `RMSE/R²`). For regression, `skew` is the
+target-distribution analog of `ratio`.
 
 For `task="regression"` the `auroc`/`auprc` columns are replaced by `rmse`/`r2`
 and `n_pos`/`ratio` are omitted. With `expand=True` the frame has one row per
@@ -149,7 +161,7 @@ dataset = load_dataset("tdcommons", "ames", featurization="morgan")
 
 | argument | values | description |
 |----------|--------|-------------|
-| `source` | `"tdcommons"`, `"moleculenet"`, `"polaris"` | dataset source |
+| `source` | `"tdcommons"`, `"moleculenet"` | dataset source |
 | `dataset` | e.g. `"ames"`, `"tox21"` | family name |
 | `featurization` | `"morgan"`, `"rdkit"`, `None` | feature representation; `None` returns raw SMILES |
 | `task` | `"classification"`, `"regression"` | ML task type; defaults to `"classification"` |
@@ -325,17 +337,19 @@ eosbench info --source moleculenet --dataset tox21 --column NR-AhR
 Download a dataset to a local folder.
 
 ```bash
-eosbench fetch --source tdcommons --dataset ames
+eosbench fetch --id bed0959b                       # simplest: fetch by identifier
+eosbench fetch --source tdcommons --dataset ames    # or explicitly
 eosbench fetch --source tdcommons --dataset ames --featurization rdkit --output_dir my_data
 eosbench fetch --source moleculenet --dataset bbbp --featurization none
 # copy from a locally prepared mirror instead of S3 (e.g. before uploading)
-eosbench fetch --source polaris --dataset bbb-martins --from_dir data
+eosbench fetch --source tdcommons --dataset ames --from_dir data
 ```
 
 | argument | default | description |
 |----------|---------|-------------|
-| `--source` | required | `tdcommons`, `moleculenet`, or `polaris` |
-| `--dataset` | required | dataset name, e.g. `ames` |
+| `--id` | — | eosbench identifier; resolves source/dataset/task automatically (use instead of `--source`/`--dataset`) |
+| `--source` | required* | `tdcommons` or `moleculenet` (*not needed with `--id`) |
+| `--dataset` | required* | dataset name, e.g. `ames` (*not needed with `--id`) |
 | `--featurization` | `morgan` | `morgan`, `rdkit`, or `none` |
 | `--output_dir` | `.` | root folder to write into |
 | `--task` | `classification` | `classification` or `regression` |
@@ -435,10 +449,20 @@ per dataset (distinct from the RandomForest baseline). These come from curated s
 - **MoleculeNet** — `scripts/moleculenet_leaderboard.json`, applied at prep time by
   `prepare_moleculenet.py`.
 - **tdcommons** — `scripts/tdcommons_leaderboard.json`, applied at prep time by
-  `prepare_tdcommons.py`. Values are sourced from the **Polaris Hub** (which hosts the TDC
-  ADMET Benchmark Group), *not* from TDC's own leaderboard, which can contain errors. Each
-  task keeps its official metric (AUROC, or AUPRC for the imbalanced CYP tasks). Datasets
-  outside the official ADMET Benchmark Group (e.g. `clintox`, `cyp1a2_veith`) are left blank.
+  `prepare_tdcommons.py` (and patchable after the fact with `scripts/patch_leaderboard_metadata.py`).
+  Each entry records a **`provider`** giving its precedence:
+  - `polaris` — the **Polaris Hub**'s mirror of the TDC ADMET Benchmark Group (preferred over
+    TDC's own leaderboard, which can contain errors); the 13 ADMET classification tasks.
+  - `moleculenet` — for datasets that are the *same* as a MoleculeNet benchmark (`hiv`, `clintox`).
+  - `literature` — a single reputable/recent paper, for datasets on no leaderboard at all
+    (`cyp1a2_veith`, `cyp2c19_veith`, `b3db_classification`, `herg_karim`, `hlm`, `rlm`).
+    **These are references on each paper's own split/metric — not comparable** to one another,
+    to the Polaris numbers, or to eosbench's baseline; the `split` and `source` fields record
+    the provenance.
+
+  Datasets with no clean dataset-specific number stay blank (the Butkiewicz HTS panel is
+  reported as logAUC rather than ROC-AUC; SARS-CoV-2, PAMPA, `skin_reaction`,
+  `carcinogens_lagunin` have no comparable AUROC).
 
 ---
 
@@ -455,8 +479,9 @@ across all sources and both tasks, writes `site/catalog.json`, and **HEAD-probes
 reflects what is actually fetchable, not just what has metadata.
 
 The `.github/workflows/pages.yml` workflow rebuilds and redeploys the site on every push to
-`main` and on a daily schedule (the cron keeps the availability badges current even when S3 is
-updated without a commit). To preview locally:
+`main` (and can be triggered manually from the Actions tab). Because the availability badges are
+checked at build time, re-run the workflow after uploading new datasets to S3 to refresh them.
+To preview locally:
 
 ```bash
 python scripts/export_catalog.py        # writes site/catalog.json (with live S3 checks)

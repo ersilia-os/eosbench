@@ -5,8 +5,8 @@ source and both tasks, HEAD-probes each dataset's ``data.csv`` on the public S3 
 it available/pending, and writes a single ``catalog.json`` consumed by ``site/index.html``.
 
 Discovery is driven entirely by the committed metadata; only the availability flag is read from
-S3. The CI workflow runs this on every push and on a daily cron so the dataset list tracks the
-repo and the availability badges track live S3.
+S3. The CI workflow runs this on every push to main (and on manual dispatch), so the site tracks
+the repo and the availability badges reflect live S3 at build time.
 
 Usage::
 

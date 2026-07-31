@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+import hashlib
 import shutil
 import json
 import os
@@ -190,6 +191,15 @@ class DatasetInfo:
             self.metadata = json.load(f)
 
     @property
+    def id(self) -> str:
+        """Deterministic short eosbench identifier for this dataset family."""
+        return make_id(self.source, self.dataset)
+
+    def column_id(self, column: str) -> str:
+        """Deterministic short eosbench identifier for one label column."""
+        return make_id(self.source, self.dataset, column)
+
+    @property
     def columns(self) -> list[str]:
         """Label-column (endpoint) names. A single-element list for single-task datasets."""
         columns = self.metadata.get("columns")
@@ -296,7 +306,7 @@ def load_dataset(
     Parameters
     ----------
     source : str
-        Dataset source, e.g. "tdcommons", "moleculenet", or "polaris".
+        Dataset source, e.g. "tdcommons" or "moleculenet".
     dataset : str
         Dataset (family) name, e.g. "ames", "tox21", or "bbbp".
     featurization : str or None
@@ -338,7 +348,9 @@ def load_dataset(
 
     if resolved is not None:  # family format: select label column, mask labeled rows
         mask = df[resolved].notna().to_numpy()
-        y = df.loc[mask, resolved].to_numpy().astype(int)
+        y = df.loc[mask, resolved].to_numpy()
+        # Classification labels are integer-coded; regression targets stay float.
+        y = y.astype(int) if task == "classification" else y.astype(float)
         smiles = df.loc[mask, "smiles"].tolist()
         metadata = {**metadata, "column": resolved, **metadata["columns"][resolved]}
     else:  # legacy single-task: activity/value column, all rows
@@ -383,7 +395,7 @@ def iter_datasets(
     Parameters
     ----------
     source : str
-        e.g. "tdcommons", "moleculenet", or "polaris".
+        e.g. "tdcommons" or "moleculenet".
     task : str
         "classification" or "regression" (default: "classification").
 
@@ -439,7 +451,7 @@ def get_path(
     dataset_name : str
         Dataset name, e.g. "ames".
     source : str
-        e.g. "tdcommons", "moleculenet", or "polaris".
+        e.g. "tdcommons" or "moleculenet".
     task : str
         "classification" or "regression".
 
@@ -501,15 +513,57 @@ def _task_metric_spec(task: str) -> dict:
     return TASK_METRICS.get(task, TASK_METRICS["classification"])
 
 
+def make_id(source: str, dataset: str, column: str | None = None) -> str:
+    """Deterministic short eosbench identifier for a dataset family or label column.
+
+    A stable hex handle derived purely from ``source``/``dataset`` (and ``column`` for an
+    endpoint), so it is reproducible across regenerations and needs no registry. Family:
+    ``make_id("tdcommons", "ames") -> "a3f9c2b1"``; column:
+    ``make_id("moleculenet", "tox21", "NR-AR")`` gives a different code.
+    """
+    key = f"{source}/{dataset}" + (f"/{column}" if column is not None else "")
+    return hashlib.sha1(key.encode()).hexdigest()[:8]
+
+
+def resolve_id(identifier: str) -> dict:
+    """Resolve an eosbench id back to its dataset (and column, if it's a column id).
+
+    Scans the bundled catalog for a family or label-column whose :func:`make_id` matches.
+    Returns ``{"source", "dataset", "task", "column"}`` (``column`` is None for a family id).
+    Raises ``KeyError`` if no dataset has that id.
+    """
+    for source in list_sources():
+        for task in ("classification", "regression"):
+            for info in iter_datasets(source, task):
+                if info.id == identifier:
+                    return {"source": source, "dataset": info.dataset, "task": task, "column": None}
+                for col in info.columns:
+                    if info.column_id(col) == identifier:
+                        return {"source": source, "dataset": info.dataset, "task": task, "column": col}
+    raise KeyError(f"no eosbench dataset or column has id {identifier!r}")
+
+
 def catalog_columns(task: str = "classification", expand: bool = False) -> list[str]:
-    """Column order of a ``get_catalog`` frame for the given task and view."""
+    """Column order of a ``get_catalog`` frame for the given task and view.
+
+    ``task="all"`` returns the union of the classification and regression columns (both
+    metric sets, plus the class-balance columns), so a combined catalog renders uniformly.
+    """
+    if task == "all":
+        return [
+            "id", "name", "source", "task", "column" if expand else "n_columns", "n_tot",
+            "size", "n_pos", "auroc", "auprc", "ratio", "rmse", "r2", "skew",
+            "leaderboard_score", "leaderboard_metric", "last_updated",
+        ]
     spec = _task_metric_spec(task)
-    cols = ["name", "source", "task", "column" if expand else "n_columns", "n_tot"]
+    cols = ["id", "name", "source", "task", "column" if expand else "n_columns", "n_tot", "size"]
     if spec["show_class_balance"]:
         cols.append("n_pos")
     cols += [m[0] for m in spec["metrics"]]
     if spec["show_class_balance"]:
         cols.append("ratio")
+    else:  # regression: skewness is the label-shape analog of the class-balance ratio
+        cols.append("skew")
     # Published-leaderboard reference (best reported model), where known.
     cols += ["leaderboard_score", "leaderboard_metric"]
     cols.append("last_updated")
@@ -538,7 +592,23 @@ def get_catalog(
     Regression (collapsed) — name, source, task, n_columns, n_tot, rmse, r2,
         leaderboard_score, leaderboard_metric, last_updated (no n_pos/ratio).
         ``expand=True`` swaps ``n_columns``→``column``.
+
+    ``task="all"`` returns both tasks in one frame with the union of columns (metrics that
+    don't apply to a row are NaN).
     """
+    if task == "all":
+        frames = [
+            get_catalog(source=source, task=t, expand=expand)
+            for t in ("classification", "regression")
+        ]
+        cols = catalog_columns("all", expand)
+        combined = pd.concat(frames, ignore_index=True)
+        if combined.empty:
+            return pd.DataFrame(columns=cols)
+        combined = combined.reindex(columns=cols)
+        sort_keys = ["task", "source", "name", "column"] if expand else ["task", "source", "name"]
+        return combined.sort_values(sort_keys).reset_index(drop=True)
+
     spec = _task_metric_spec(task)
     metrics = spec["metrics"]
     balance = spec["show_class_balance"]
@@ -558,11 +628,13 @@ def get_catalog(
                 for name, c in items:
                     n_tot, n_pos = c.get("n_samples"), c.get("n_positives")
                     row = {
+                        "id": make_id(src, info.dataset, name),
                         "name": info.dataset,
                         "source": src,
                         "task": task,
                         "column": name,
                         "n_tot": n_tot,
+                        "size": meta.get("size_bytes"),
                         "leaderboard_score": c.get("leaderboard_value"),
                         "leaderboard_metric": c.get("leaderboard_metric"),
                         "last_updated": last_updated,
@@ -572,6 +644,8 @@ def get_catalog(
                     if balance:
                         row["n_pos"] = n_pos
                         row["ratio"] = _ratio(n_tot, n_pos)
+                    else:
+                        row["skew"] = c.get("skewness")
                     rows.append(row)
                 continue
 
@@ -591,11 +665,13 @@ def get_catalog(
                 n_pos = meta.get("n_positives")
                 ratio = _ratio(n_tot, n_pos)
             row = {
+                "id": make_id(src, info.dataset),
                 "name": info.dataset,
                 "source": src,
                 "task": task,
                 "n_columns": len(info.columns),
                 "n_tot": n_tot,
+                "size": meta.get("size_bytes"),
                 "leaderboard_score": meta.get("leaderboard_value"),
                 "leaderboard_metric": meta.get("leaderboard_metric"),
                 "last_updated": last_updated,
@@ -605,11 +681,16 @@ def get_catalog(
             if balance:
                 row["n_pos"] = n_pos
                 row["ratio"] = ratio
+            else:
+                row["skew"] = (
+                    _median_float(c.get("skewness") for c in columns.values())
+                    if columns else meta.get("skewness")
+                )
             rows.append(row)
 
     if not rows:
         return pd.DataFrame(columns=cols)
-    sort_keys = ["source", "name", "column"] if expand else ["source", "name"]
+    sort_keys = ["task", "source", "name", "column"] if expand else ["task", "source", "name"]
     return pd.DataFrame(rows)[cols].sort_values(sort_keys).reset_index(drop=True)
 
 
@@ -626,7 +707,7 @@ def mirror_dataset(
     Parameters
     ----------
     source : str
-        e.g. "tdcommons", "moleculenet", or "polaris".
+        e.g. "tdcommons" or "moleculenet".
     dataset : str
         Dataset name, e.g. "ames".
     featurization : str or None

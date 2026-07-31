@@ -47,4 +47,4 @@ def test_build_catalog_is_strict_json_serializable():
 def test_known_sources_present():
     payload = ec.build_catalog(head_check=lambda url: False)
     sources = {d["source"] for d in payload["datasets"]}
-    assert {"tdcommons", "moleculenet", "polaris"} <= sources
+    assert {"tdcommons", "moleculenet"} <= sources

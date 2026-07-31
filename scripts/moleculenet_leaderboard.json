@@ -1,59 +1,80 @@
 {
   "_comment": "Curated fallback for MoleculeNet leaderboard metrics, used when scraping moleculenet.org fails. Values are representative best-model test scores from Wu et al. 2018 (MoleculeNet, Chem. Sci.) and the DeepChem benchmark; treat as references, not ground truth. 'split' records the split MoleculeNet recommends/reports for that set (scaffold for BBBP/BACE/HIV, random for the rest). Keyed by dataset family.",
   "bbbp": {
-    "metric": "ROC-AUC",
+    "metric": "AUROC",
     "value": 0.729,
     "split": "scaffold",
     "provider": "moleculenet",
     "source": "Wu et al. 2018 (MoleculeNet), best model"
   },
   "bace": {
-    "metric": "ROC-AUC",
+    "metric": "AUROC",
     "value": 0.806,
     "split": "scaffold",
     "provider": "moleculenet",
     "source": "Wu et al. 2018 (MoleculeNet), best model"
   },
   "hiv": {
-    "metric": "ROC-AUC",
+    "metric": "AUROC",
     "value": 0.763,
     "split": "scaffold",
     "provider": "moleculenet",
     "source": "Wu et al. 2018 (MoleculeNet), best model"
   },
   "tox21": {
-    "metric": "ROC-AUC",
+    "metric": "AUROC",
     "value": 0.829,
     "split": "random",
     "provider": "moleculenet",
     "source": "Wu et al. 2018 (MoleculeNet), best model (12-task avg)"
   },
   "clintox": {
-    "metric": "ROC-AUC",
+    "metric": "AUROC",
     "value": 0.832,
     "split": "random",
     "provider": "moleculenet",
     "source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg)"
   },
   "sider": {
-    "metric": "ROC-AUC",
+    "metric": "AUROC",
     "value": 0.638,
     "split": "random",
     "provider": "moleculenet",
     "source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
   },
   "muv": {
-    "metric": "PRC-AUC",
+    "metric": "AUPRC",
     "value": 0.184,
     "split": "random",
     "provider": "moleculenet",
     "source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
   },
   "toxcast": {
-    "metric": "ROC-AUC",
+    "metric": "AUROC",
     "value": 0.716,
     "split": "random",
     "provider": "moleculenet",
     "source": "Wu et al. 2018 (MoleculeNet), best model (617-task avg)"
+  },
+  "esol": {
+    "metric": "RMSE",
+    "value": 0.58,
+    "split": "random",
+    "provider": "moleculenet",
+    "source": "Wu et al. 2018 (MoleculeNet), best model"
+  },
+  "freesolv": {
+    "metric": "RMSE",
+    "value": 1.15,
+    "split": "random",
+    "provider": "moleculenet",
+    "source": "Wu et al. 2018 (MoleculeNet), best model"
+  },
+  "lipophilicity": {
+    "metric": "RMSE",
+    "value": 0.655,
+    "split": "random",
+    "provider": "moleculenet",
+    "source": "Wu et al. 2018 (MoleculeNet), best model"
   }
 }

@@ -1,0 +1,44 @@
+{
+  "source": "moleculenet",
+  "dataset": "lipophilicity",
+  "task": "regression",
+  "last_updated": "2026-06-17",
+  "n_molecules": 4200,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "murcko",
+    "conserved": true,
+    "stratified": false
+  },
+  "columns": {
+    "lipophilicity": {
+      "n_samples": 4200,
+      "skewness": -0.5820103879114096,
+      "random_rmse_mean": 0.7670372881914123,
+      "random_rmse_std": 0.027235532370619438,
+      "random_r2_mean": 0.5920798543533191,
+      "random_r2_std": 0.03045087805094472,
+      "scaffold_rmse": 0.8359932579549811,
+      "scaffold_r2": 0.48476570383968165,
+      "scaffold_split_method": "murcko",
+      "leaderboard_metric": "RMSE",
+      "leaderboard_value": 0.655,
+      "leaderboard_split": "random",
+      "leaderboard_provider": "moleculenet",
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model"
+    }
+  },
+  "rmse_mean": 0.7670372881914123,
+  "r2_mean": 0.5920798543533191,
+  "leaderboard_metric": "RMSE",
+  "leaderboard_value": 0.655,
+  "leaderboard_split": "random",
+  "leaderboard_provider": "moleculenet",
+  "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model",
+  "size_bytes": 76127617
+}

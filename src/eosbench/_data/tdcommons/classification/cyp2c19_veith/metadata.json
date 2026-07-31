@@ -29,18 +29,19 @@
       "scaffold_split_method": "tdc-scaffold",
       "scaffold_test_positives": 1229,
       "scaffold_test_negatives": 1305,
-      "leaderboard_metric": null,
-      "leaderboard_value": null,
-      "leaderboard_split": null,
-      "leaderboard_source": null,
-      "leaderboard_provider": null
+      "leaderboard_metric": "AUROC",
+      "leaderboard_value": 0.94,
+      "leaderboard_split": "external (paper)",
+      "leaderboard_source": "CYPi-DNNpredictor, JCIM 2024 (doi:10.1021/acs.jcim.3c01396), external validation",
+      "leaderboard_provider": "literature"
     }
   },
   "auroc_mean": 0.8898878943354985,
   "aupr_mean": 0.8622523214004479,
-  "leaderboard_metric": null,
-  "leaderboard_value": null,
-  "leaderboard_split": null,
-  "leaderboard_source": null,
-  "leaderboard_provider": null
+  "leaderboard_metric": "AUROC",
+  "leaderboard_value": 0.94,
+  "leaderboard_split": "external (paper)",
+  "leaderboard_source": "CYPi-DNNpredictor, JCIM 2024 (doi:10.1021/acs.jcim.3c01396), external validation",
+  "leaderboard_provider": "literature",
+  "size_bytes": 229500862
 }

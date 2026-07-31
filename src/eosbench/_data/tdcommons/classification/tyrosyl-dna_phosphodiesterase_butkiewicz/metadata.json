@@ -1,0 +1,44 @@
+{
+  "source": "tdcommons",
+  "dataset": "tyrosyl-dna_phosphodiesterase_butkiewicz",
+  "task": "classification",
+  "last_updated": "2026-06-16",
+  "n_molecules": 341324,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "tdc-scaffold",
+    "conserved": true,
+    "stratified": true
+  },
+  "columns": {
+    "tyrosyl-dna_phosphodiesterase_butkiewicz": {
+      "n_samples": 341324,
+      "n_positives": 280,
+      "n_negatives": 341044,
+      "random_auroc_mean": 0.7691887419149745,
+      "random_auroc_std": 0.030917942986163217,
+      "random_aupr_mean": 0.13401580943445782,
+      "random_aupr_std": 0.04849352745383194,
+      "scaffold_auroc": 0.7052360470769854,
+      "scaffold_aupr": 0.04977415135597591,
+      "scaffold_split_method": "tdc-scaffold",
+      "scaffold_test_positives": 62,
+      "scaffold_test_negatives": 68204,
+      "leaderboard_metric": null,
+      "leaderboard_value": null,
+      "leaderboard_split": null,
+      "leaderboard_source": null
+    }
+  },
+  "auroc_mean": 0.7691887419149745,
+  "aupr_mean": 0.13401580943445782,
+  "leaderboard_metric": null,
+  "leaderboard_value": null,
+  "leaderboard_split": null,
+  "leaderboard_source": null
+}

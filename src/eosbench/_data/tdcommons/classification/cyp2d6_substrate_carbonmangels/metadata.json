@@ -42,5 +42,6 @@
   "leaderboard_value": 0.736,
   "leaderboard_split": "scaffold",
   "leaderboard_source": "ContextPred, Polaris TDC ADMET leaderboard",
-  "leaderboard_provider": "polaris"
+  "leaderboard_provider": "polaris",
+  "size_bytes": 12089060
 }

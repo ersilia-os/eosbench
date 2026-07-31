@@ -196,3 +196,42 @@ def test_prepare_family_uses_injected_holdout(tmp_path, monkeypatch):
     assert meta["columns"]["act"]["scaffold_split_method"] == "polaris"
     # Random K-fold is still generated alongside the official holdout.
     assert sorted(set(folds["random_fold"].tolist())) == [0, 1, 2]
+
+
+def test_prepare_family_regression_writes_rmse_r2(tmp_path, monkeypatch):
+    """A regression family records RMSE/R2 (not AUROC/class counts) and keeps float targets."""
+    monkeypatch.setattr(common, "DATA_ROOT", tmp_path / "data")
+    monkeypatch.setattr(common, "PKG_DATA_ROOT", tmp_path / "pkg")
+
+    smiles = _POS_SMILES + _NEG_SMILES
+    # Continuous targets (one per molecule); values clearly non-binary.
+    y = [float(i) * 0.37 - 1.5 for i in range(len(smiles))]
+    label_df = pd.DataFrame({"solubility": y})
+
+    out = common.prepare_family(
+        source="moleculenet",
+        family="demo_reg",
+        smiles=smiles,
+        label_df=label_df,
+        task="regression",
+        n_folds=3,
+        seed=42,
+    )
+
+    data = pd.read_csv(out / "data.csv")
+    with open(out / "metadata.json") as f:
+        meta = json.load(f)
+
+    assert meta["task"] == "regression"
+    # Family-level regression aggregates; no classification keys.
+    assert "rmse_mean" in meta and "r2_mean" in meta
+    assert "auroc_mean" not in meta and "aupr_mean" not in meta
+    block = meta["columns"]["solubility"]
+    assert "random_rmse_mean" in block and "scaffold_rmse" in block
+    assert "n_positives" not in block and "n_negatives" not in block
+    # Regression is never class-stratified; plain Murcko scaffold split.
+    assert meta["split"]["stratified"] is False
+    assert meta["split"]["scaffold_split_method"] == "murcko"
+    # Targets stored as floats, not coerced to {0,1}.
+    assert data["solubility"].dtype == float
+    assert set(data["solubility"]) - {0.0, 1.0}

@@ -4,7 +4,15 @@ import pytest
 
 from eosbench import get_catalog
 from eosbench.dataset import catalog_columns
-from eosbench.cli.catalog import filter_catalog, _fmt_cell
+from eosbench.cli.catalog import (
+    filter_catalog,
+    _fmt_cell,
+    _human_count,
+    _grade_color,
+    _ratio_cell,
+    _leaderboard_cell,
+    _display_columns,
+)
 
 
 @pytest.fixture
@@ -130,11 +138,13 @@ def test_classification_filter_on_regression_frame_errors(regression_catalog):
 
 def test_catalog_columns_are_task_aware():
     assert catalog_columns("classification") == [
+        "id",
         "name",
         "source",
         "task",
         "n_columns",
         "n_tot",
+        "size",
         "n_pos",
         "auroc",
         "auprc",
@@ -144,13 +154,16 @@ def test_catalog_columns_are_task_aware():
         "last_updated",
     ]
     assert catalog_columns("regression") == [
+        "id",
         "name",
         "source",
         "task",
         "n_columns",
         "n_tot",
+        "size",
         "rmse",
         "r2",
+        "skew",
         "leaderboard_score",
         "leaderboard_metric",
         "last_updated",
@@ -176,7 +189,7 @@ def test_get_catalog_surfaces_leaderboard_for_moleculenet():
     df = get_catalog(source="moleculenet")
     assert {"leaderboard_score", "leaderboard_metric"} <= set(df.columns)
     sider = df.loc[df["name"] == "sider"].iloc[0]
-    assert sider["leaderboard_metric"] == "ROC-AUC"
+    assert sider["leaderboard_metric"] == "AUROC"
     assert sider["leaderboard_score"] == pytest.approx(0.638)
 
 
@@ -188,9 +201,10 @@ def test_get_catalog_leaderboard_for_tdcommons_from_polaris():
     assert ames["leaderboard_score"] == pytest.approx(0.871)
     # CYP inhibition tasks are ranked by AUPRC.
     assert df.loc["cyp2d6_veith", "leaderboard_metric"] == "AUPRC"
-    # Datasets outside the ADMET Benchmark Group stay blank.
-    assert pd.isna(df.loc["clintox", "leaderboard_score"])
-    assert pd.isna(df.loc["cyp1a2_veith", "leaderboard_score"])
+    # clintox is not in the ADMET group, but is cross-filled from MoleculeNet.
+    assert df.loc["clintox", "leaderboard_score"] == pytest.approx(0.832)
+    # Datasets with no comparable published number at all stay blank.
+    assert pd.isna(df.loc["carcinogens_lagunin", "leaderboard_score"])
 
 
 def test_get_catalog_unknown_source_is_empty_but_well_formed():
@@ -199,12 +213,32 @@ def test_get_catalog_unknown_source_is_empty_but_well_formed():
     assert "leaderboard_score" in df.columns  # headers present even with no rows
 
 
-def test_get_catalog_regression_is_empty_but_well_formed():
-    """No regression data is bundled yet; must not crash and must carry headers."""
+def test_get_catalog_regression_is_well_formed():
+    """The regression catalog carries the regression columns and rmse/r2 (no class balance)."""
     df = get_catalog(task="regression")
-    assert df.empty
     assert list(df.columns) == catalog_columns("regression")
     assert "n_pos" not in df.columns and "ratio" not in df.columns
+    assert "rmse" in df.columns and "r2" in df.columns
+    # MoleculeNet regression sets are now bundled (esol/freesolv/lipophilicity/qm8).
+    assert not df.empty
+    assert "esol" in set(df["name"])
+
+
+def test_get_catalog_all_tasks_combines_both():
+    """task='all' (the CLI default) unions classification + regression in one frame."""
+    df = get_catalog(task="all")
+    assert list(df.columns) == catalog_columns("all")
+    # Both metric sets present as columns.
+    assert {"auroc", "auprc", "rmse", "r2", "n_pos", "ratio"} <= set(df.columns)
+    tasks = set(df["task"])
+    assert {"classification", "regression"} <= tasks
+    # A classification set and a regression set both appear.
+    assert {"ames", "esol"} <= set(df["name"])
+    # A regression row has rmse but no auroc; a classification row vice versa.
+    esol = df[df["name"] == "esol"].iloc[0]
+    assert pd.notna(esol["rmse"]) and pd.isna(esol["auroc"])
+    ames = df[df["name"] == "ames"].iloc[0]
+    assert pd.notna(ames["auroc"]) and pd.isna(ames["rmse"])
 
 
 # --- cell formatting --------------------------------------------------------
@@ -223,3 +257,46 @@ def test_fmt_cell_metrics_keep_decimals():
     assert _fmt_cell("auroc", 0.9029) == "0.9029"
     assert _fmt_cell("ratio", np.nan) == "-"
     assert _fmt_cell("name", "ames") == "ames"
+
+
+# --- richer formatting helpers ----------------------------------------------
+
+def test_human_count_abbreviates_only_big_values():
+    assert _human_count(7278) == "7,278"        # small: exact, grouped
+    assert _human_count(41120) == "41,120"      # < 100k stays exact
+    assert _human_count(99999) == "99,999"
+    assert _human_count(100000) == "100k"       # >= 100k abbreviated
+    assert _human_count(302343) == "302k"
+    assert _human_count(1203045) == "1.2M"
+
+
+def test_grade_color_thresholds():
+    assert _grade_color(0.95) == "green"
+    assert _grade_color(0.80) == "green"        # boundary inclusive
+    assert _grade_color(0.70) == "yellow"
+    assert _grade_color(0.60) == "yellow"
+    assert _grade_color(0.55) == "red"
+
+
+def test_ratio_cell_bar_length_tracks_value():
+    assert _ratio_cell(0.0).count("▰") == 0 and _ratio_cell(0.0).count("▱") == 5
+    assert _ratio_cell(1.0).count("▰") == 5
+    assert "0.50" in _ratio_cell(0.5)
+    assert _ratio_cell(None) == "[dim]-[/dim]"   # blanks dimmed
+
+
+def test_leaderboard_cell_merges_score_and_metric():
+    cell = _leaderboard_cell({"leaderboard_score": 0.871, "leaderboard_metric": "AUROC"})
+    assert "0.871" in cell and "AUROC" in cell
+    assert "green" in cell  # 0.871 -> graded green
+    assert _leaderboard_cell({"leaderboard_score": None, "leaderboard_metric": None}) == "[dim]-[/dim]"
+
+
+def test_display_columns_merges_leaderboard_pair():
+    df = get_catalog(source="moleculenet")
+    headers = [h for h, _justify, _render in _display_columns(df)]
+    assert "leaderboard" in headers
+    assert "leaderboard_score" not in headers and "leaderboard_metric" not in headers
+    # every renderer returns a string for a sample row (no crash)
+    row = df.iloc[0]
+    assert all(isinstance(render(row), str) for _h, _j, render in _display_columns(df))

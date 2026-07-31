@@ -33,11 +33,12 @@ MIRROR = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets"
 RAW_DIR = common.DATA_ROOT / "_raw" / "moleculenet"
 LEADERBOARD_JSON = Path(__file__).resolve().parent / "moleculenet_leaderboard.json"
 
-# Registry of MoleculeNet binary-classification sets. Each set becomes one family.
+# Registry of MoleculeNet sets. Each set becomes one family.
 #   file        : filename on the DeepChem mirror
 #   smiles_col  : SMILES column
 #   single      : the single label column (single-column sets only)
 #   columns     : explicit list of label columns (multi-column sets); None = auto-detect
+#   task        : "classification" (default) or "regression"
 REGISTRY: dict[str, dict] = {
     # --- single-column families ---
     "bbbp": {"file": "BBBP.csv", "smiles_col": "smiles", "single": "p_np"},
@@ -70,10 +71,41 @@ REGISTRY: dict[str, dict] = {
     "sider": {"file": "sider.csv.gz", "smiles_col": "smiles", "columns": None},
     "muv": {"file": "muv.csv.gz", "smiles_col": "smiles", "columns": None},
     "toxcast": {"file": "toxcast_data.csv.gz", "smiles_col": "smiles", "columns": None},
+    # --- single-column regression families ---
+    "esol": {
+        "file": "delaney-processed.csv", "smiles_col": "smiles",
+        "single": "measured log solubility in mols per litre", "task": "regression",
+    },
+    "freesolv": {
+        "file": "SAMPL.csv", "smiles_col": "smiles", "single": "expt", "task": "regression",
+    },
+    "lipophilicity": {
+        "file": "Lipophilicity.csv", "smiles_col": "smiles", "single": "exp",
+        "task": "regression",
+    },
+    # --- multi-column regression families (quantum properties) ---
+    "qm8": {
+        "file": "qm8.csv", "smiles_col": "smiles", "task": "regression",
+        "columns": [
+            "E1-CC2", "E2-CC2", "f1-CC2", "f2-CC2",
+            "E1-PBE0", "E2-PBE0", "f1-PBE0", "f2-PBE0",
+            "E1-CAM", "E2-CAM", "f1-CAM", "f2-CAM",
+        ],
+    },
+    "qm9": {
+        "file": "qm9.csv", "smiles_col": "smiles", "task": "regression",
+        "columns": [
+            "mu", "alpha", "homo", "lumo", "gap", "r2",
+            "zpve", "cv", "u0", "u298", "h298", "g298",
+        ],
+    },
 }
 
-# Sensible default subset (excludes the very large muv/toxcast sweeps).
-DEFAULT_SETS = ["bbbp", "bace", "hiv", "clintox", "tox21", "sider"]
+# Sensible default subset (excludes the very large muv/toxcast/qm9 sweeps).
+DEFAULT_SETS = [
+    "bbbp", "bace", "hiv", "clintox", "tox21", "sider",
+    "esol", "freesolv", "lipophilicity",
+]
 
 
 def download(file: str) -> Path:
@@ -136,24 +168,30 @@ def prepare_set(
     seed: int,
     compute_baseline: bool = True,
 ) -> int:
-    """Prepare ONE family (≥1 binary tasks) from a MoleculeNet set. Returns 1 if written."""
+    """Prepare ONE family (≥1 tasks) from a MoleculeNet set. Returns 1 if written."""
     path = download(spec["file"])
     df = pd.read_csv(path)
     smiles_col = spec["smiles_col"]
     is_single = "single" in spec
+    task = spec.get("task", TASK)
+    coerce = common.coerce_continuous if task == "regression" else common.coerce_binary
+    bad_label = "no variance" if task == "regression" else "not binary or single-class"
 
     base = df[df[smiles_col].notna()].reset_index(drop=True)
     label_df = pd.DataFrame(index=base.index)
     for col in label_columns(key, df, spec):
-        coerced = common.coerce_binary(base[col])
+        if col not in base.columns:
+            print(f"  [{key}/{col}] skipped task: column not in source CSV")
+            continue
+        coerced = coerce(base[col])
         if coerced is None:
-            print(f"  [{key}/{col}] skipped task: not binary or single-class")
+            print(f"  [{key}/{col}] skipped task: {bad_label}")
             continue
         # Single-task families name their sole task after the family for a friendly default.
         label_df[key if is_single else col] = coerced.to_numpy()
 
     if label_df.shape[1] == 0:
-        print(f"  [{key}] skipped: no usable binary tasks")
+        print(f"  [{key}] skipped: no usable tasks")
         return 0
 
     common.prepare_family(
@@ -161,7 +199,7 @@ def prepare_set(
         family=key,
         smiles=base[smiles_col].tolist(),
         label_df=label_df,
-        task=TASK,
+        task=task,
         n_folds=n_folds,
         seed=seed,
         leaderboard=leaderboard.get(key),

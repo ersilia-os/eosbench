@@ -27,8 +27,13 @@ from rdkit import Chem, RDLogger
 from rdkit.Chem import AllChem, Descriptors
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from rdkit.DataStructs import ConvertToNumpyArray
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.metrics import (
+    average_precision_score,
+    mean_squared_error,
+    r2_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import KFold, StratifiedKFold
 
 RDLogger.DisableLog("rdApp.*")
@@ -60,6 +65,19 @@ def coerce_binary(series: pd.Series) -> pd.Series | None:
     if present.empty or set(present.unique()) - {0.0, 1.0} or present.nunique() < 2:
         return None
     return num.round()
+
+
+def coerce_continuous(series: pd.Series) -> pd.Series | None:
+    """Coerce a label column to floats with NaN preserved, for regression targets.
+
+    Sibling of :func:`coerce_binary`. Returns None only if the column has no usable signal
+    (all-missing, or a single constant value with zero variance).
+    """
+    num = pd.to_numeric(series, errors="coerce")
+    present = num.dropna()
+    if present.empty or present.nunique() < 2:
+        return None
+    return num
 
 
 def parse_molecules(smiles: list[str]) -> tuple[list[str], list[Chem.Mol], np.ndarray]:
@@ -293,6 +311,44 @@ def rf_baseline_holdout(
     }
 
 
+def _rfr(seed: int) -> RandomForestRegressor:
+    return RandomForestRegressor(n_estimators=300, n_jobs=-1, random_state=seed)
+
+
+def rf_regression_cv(X: np.ndarray, y: np.ndarray, random_fold: np.ndarray, seed: int = 42):
+    """RandomForest regression baseline over random K-fold CV. Returns RMSE/R2 mean & std."""
+    rmses, r2s = [], []
+    for k in sorted(set(random_fold.tolist())):
+        tr, te = random_fold != k, random_fold == k
+        if tr.sum() < 2 or te.sum() < 2:  # R2 is undefined for <2 test points
+            continue
+        reg = _rfr(seed).fit(X[tr], y[tr])
+        pred = reg.predict(X[te])
+        rmses.append(float(np.sqrt(mean_squared_error(y[te], pred))))
+        r2s.append(float(r2_score(y[te], pred)))
+    if not rmses:
+        return {"rmse_mean": None, "rmse_std": None, "r2_mean": None, "r2_std": None}
+    return {
+        "rmse_mean": float(np.mean(rmses)),
+        "rmse_std": float(np.std(rmses)),
+        "r2_mean": float(np.mean(r2s)),
+        "r2_std": float(np.std(r2s)),
+    }
+
+
+def rf_regression_holdout(X: np.ndarray, y: np.ndarray, scaffold: np.ndarray, seed: int = 42):
+    """RandomForest regression baseline on the scaffold holdout (fit train, score test)."""
+    tr, te = scaffold == "train", scaffold == "test"
+    if tr.sum() < 2 or te.sum() < 2:
+        return {"rmse": None, "r2": None}
+    reg = _rfr(seed).fit(X[tr], y[tr])
+    pred = reg.predict(X[te])
+    return {
+        "rmse": float(np.sqrt(mean_squared_error(y[te], pred))),
+        "r2": float(r2_score(y[te], pred)),
+    }
+
+
 # --------------------------------------------------------------------------------------
 # Metadata + writing
 # --------------------------------------------------------------------------------------
@@ -307,6 +363,40 @@ _NO_METRICS_CV = {
     "aupr_std": None,
 }
 _NO_METRICS_HOLD = {"auroc": None, "aupr": None}
+_NO_METRICS_CV_REG = {
+    "rmse_mean": None,
+    "rmse_std": None,
+    "r2_mean": None,
+    "r2_std": None,
+}
+_NO_METRICS_HOLD_REG = {"rmse": None, "r2": None}
+
+
+def _leaderboard_fields(leaderboard: dict | None) -> dict:
+    lb = leaderboard or {}
+    return {
+        "leaderboard_metric": lb.get("metric"),
+        "leaderboard_value": lb.get("value"),
+        "leaderboard_split": lb.get("split"),
+        "leaderboard_provider": lb.get("provider"),
+        "leaderboard_source": lb.get("source"),
+    }
+
+
+def _skewness(y) -> float | None:
+    """Fisher-Pearson skewness of the target values (regression label-shape cue).
+
+    Signed: negative = left-tailed, positive = right-tailed, ~0 = symmetric.
+    Returns None for fewer than 3 points or a constant target.
+    """
+    y = np.asarray(y, dtype=float)
+    if len(y) < 3:
+        return None
+    d = y - y.mean()
+    m2 = float((d ** 2).mean())
+    if m2 == 0.0:
+        return 0.0
+    return float((d ** 3).mean() / m2 ** 1.5)
 
 
 def _build_task_block(
@@ -318,13 +408,38 @@ def _build_task_block(
     leaderboard: dict | None,
     seed: int,
     compute_baseline: bool = True,
+    task: str = "classification",
 ) -> dict:
     """Compute the per-task metadata block (baseline metrics + counts).
 
-    Always records both AUROC and AUPR for random CV and the scaffold holdout, regardless
-    of which metric the source leaderboard favours. With ``compute_baseline=False`` the
-    metrics are recorded as ``None`` (fast path for very large families like ToxCast).
+    Classification records AUROC/AUPR (random CV and the scaffold holdout) plus class counts;
+    regression records RMSE/R2 instead, with no class balance. With ``compute_baseline=False``
+    the metrics are recorded as ``None`` (fast path for very large families like ToxCast/QM9).
     """
+    if task == "regression":
+        cv = (
+            rf_regression_cv(Xb, y, random_fold, seed=seed)
+            if compute_baseline
+            else _NO_METRICS_CV_REG
+        )
+        hold = (
+            rf_regression_holdout(Xb, y, scaffold, seed=seed)
+            if compute_baseline
+            else _NO_METRICS_HOLD_REG
+        )
+        return {
+            "n_samples": int(len(y)),
+            "skewness": _skewness(y),
+            "random_rmse_mean": cv["rmse_mean"],
+            "random_rmse_std": cv["rmse_std"],
+            "random_r2_mean": cv["r2_mean"],
+            "random_r2_std": cv["r2_std"],
+            "scaffold_rmse": hold["rmse"],
+            "scaffold_r2": hold["r2"],
+            "scaffold_split_method": scaffold_method,
+            **_leaderboard_fields(leaderboard),
+        }
+
     cv = (
         rf_baseline_cv(Xb, y, random_fold, seed=seed)
         if compute_baseline
@@ -351,11 +466,7 @@ def _build_task_block(
         "scaffold_split_method": scaffold_method,
         "scaffold_test_positives": int(((y == 1) & test_mask).sum()),
         "scaffold_test_negatives": int(((y == 0) & test_mask).sum()),
-        "leaderboard_metric": (leaderboard or {}).get("metric"),
-        "leaderboard_value": (leaderboard or {}).get("value"),
-        "leaderboard_split": (leaderboard or {}).get("split"),
-        "leaderboard_provider": (leaderboard or {}).get("provider"),
-        "leaderboard_source": (leaderboard or {}).get("source"),
+        **_leaderboard_fields(leaderboard),
     }
 
 
@@ -407,9 +518,10 @@ def prepare_family(
     columns = list(label_df.columns)
     single = len(columns) == 1
 
-    # Conserved split over all family molecules; stratify only when single-column & full.
+    # Conserved split over all family molecules; class-stratify only for a single-column,
+    # fully-labeled *classification* family (regression has no classes to balance).
     stratify = None
-    if single and label_df[columns[0]].notna().all():
+    if task == "classification" and single and label_df[columns[0]].notna().all():
         stratify = label_df[columns[0]].to_numpy().astype(int)
     random_fold = make_random_folds(n_mol, k=n_folds, seed=seed, stratify=stratify)
     if holdout is not None:
@@ -429,7 +541,8 @@ def prepare_family(
     column_blocks: dict[str, dict] = {}
     for col in columns:
         mask = label_df[col].notna().to_numpy()
-        y_c = label_df.loc[mask, col].to_numpy().astype(int)
+        y_c = label_df.loc[mask, col].to_numpy()
+        y_c = y_c.astype(int) if task == "classification" else y_c.astype(float)
         column_blocks[col] = _build_task_block(
             Xb_all[mask],
             y_c,
@@ -439,7 +552,29 @@ def prepare_family(
             leaderboard,
             seed,
             compute_baseline,
+            task=task,
         )
+
+    # Family aggregates (mean over columns) consumed by the collapsed catalog row; the keys
+    # are task-specific (rmse_mean/r2_mean for regression, auroc_mean/aupr_mean otherwise).
+    if task == "regression":
+        aggregates = {
+            "rmse_mean": _mean_ignore_none(
+                b["random_rmse_mean"] for b in column_blocks.values()
+            ),
+            "r2_mean": _mean_ignore_none(
+                b["random_r2_mean"] for b in column_blocks.values()
+            ),
+        }
+    else:
+        aggregates = {
+            "auroc_mean": _mean_ignore_none(
+                b["random_auroc_mean"] for b in column_blocks.values()
+            ),
+            "aupr_mean": _mean_ignore_none(
+                b["random_aupr_mean"] for b in column_blocks.values()
+            ),
+        }
 
     metadata = {
         "source": source,
@@ -456,18 +591,8 @@ def prepare_family(
             "stratified": stratify is not None,
         },
         "columns": column_blocks,
-        # Family aggregates (mean over columns) consumed by the collapsed catalog row.
-        "auroc_mean": _mean_ignore_none(
-            b["random_auroc_mean"] for b in column_blocks.values()
-        ),
-        "aupr_mean": _mean_ignore_none(
-            b["random_aupr_mean"] for b in column_blocks.values()
-        ),
-        "leaderboard_metric": (leaderboard or {}).get("metric"),
-        "leaderboard_value": (leaderboard or {}).get("value"),
-        "leaderboard_split": (leaderboard or {}).get("split"),
-        "leaderboard_provider": (leaderboard or {}).get("provider"),
-        "leaderboard_source": (leaderboard or {}).get("source"),
+        **aggregates,
+        **_leaderboard_fields(leaderboard),
     }
 
     out_dir = DATA_ROOT / source / task / family
@@ -482,6 +607,13 @@ def prepare_family(
     )
     for feat, arr in features.items():
         np.save(out_dir / f"{feat}.npy", arr)
+
+    # Full on-disk footprint of the dataset (data + folds + all feature matrices) — what a
+    # user downloads. The .npy fingerprint matrices dominate, so this is "size with features".
+    payload = [out_dir / "data.csv", out_dir / "folds.csv"]
+    payload += [out_dir / f"{feat}.npy" for feat in features]
+    metadata["size_bytes"] = int(sum(p.stat().st_size for p in payload if p.exists()))
+
     with open(out_dir / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 
@@ -491,16 +623,29 @@ def prepare_family(
     with open(pkg_dir / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 
-    print(
-        f"  [{family}] mols={n_mol} columns={len(columns)} "
-        f"auroc_mean={_fmt(metadata['auroc_mean'])} -> {out_dir}"
-    )
-    for col, b in column_blocks.items():
+    if task == "regression":
         print(
-            f"      - {col}: n={b['n_samples']} pos={b['n_positives']} "
-            f"cv_auroc={_fmt(b['random_auroc_mean'])} "
-            f"scaffold_auroc={_fmt(b['scaffold_auroc'])}"
+            f"  [{family}] mols={n_mol} columns={len(columns)} "
+            f"rmse_mean={_fmt(metadata['rmse_mean'])} -> {out_dir}"
         )
+        for col, b in column_blocks.items():
+            print(
+                f"      - {col}: n={b['n_samples']} "
+                f"cv_rmse={_fmt(b['random_rmse_mean'])} "
+                f"cv_r2={_fmt(b['random_r2_mean'])} "
+                f"scaffold_rmse={_fmt(b['scaffold_rmse'])}"
+            )
+    else:
+        print(
+            f"  [{family}] mols={n_mol} columns={len(columns)} "
+            f"auroc_mean={_fmt(metadata['auroc_mean'])} -> {out_dir}"
+        )
+        for col, b in column_blocks.items():
+            print(
+                f"      - {col}: n={b['n_samples']} pos={b['n_positives']} "
+                f"cv_auroc={_fmt(b['random_auroc_mean'])} "
+                f"scaffold_auroc={_fmt(b['scaffold_auroc'])}"
+            )
     return out_dir
 
 

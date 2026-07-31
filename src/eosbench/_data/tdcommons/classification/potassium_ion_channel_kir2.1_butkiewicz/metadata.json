@@ -32,7 +32,8 @@
       "leaderboard_metric": null,
       "leaderboard_value": null,
       "leaderboard_split": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_provider": null
     }
   },
   "auroc_mean": 0.7112815161671572,
@@ -40,5 +41,7 @@
   "leaderboard_metric": null,
   "leaderboard_value": null,
   "leaderboard_split": null,
-  "leaderboard_source": null
+  "leaderboard_source": null,
+  "leaderboard_provider": null,
+  "size_bytes": 5461171317
 }

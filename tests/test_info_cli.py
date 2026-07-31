@@ -63,9 +63,23 @@ def test_bundled_metadata_records_leaderboard_provider():
         ]
         == "moleculenet"
     )
-    # A tdcommons dataset with no leaderboard anywhere stays blank.
+    # tdcommons hiv/clintox are cross-filled from the MoleculeNet leaderboard.
     assert (
         DatasetInfo("tdcommons", "classification", "hiv").metadata[
+            "leaderboard_provider"
+        ]
+        == "moleculenet"
+    )
+    # cyp1a2_veith is filled from a single paper, tagged as a literature reference.
+    assert (
+        DatasetInfo("tdcommons", "classification", "cyp1a2_veith").metadata[
+            "leaderboard_provider"
+        ]
+        == "literature"
+    )
+    # A dataset with no comparable published number at all stays blank.
+    assert (
+        DatasetInfo("tdcommons", "classification", "carcinogens_lagunin").metadata[
             "leaderboard_provider"
         ]
         is None

@@ -29,18 +29,19 @@
       "scaffold_split_method": "tdc-scaffold",
       "scaffold_test_positives": 281,
       "scaffold_test_negatives": 7946,
-      "leaderboard_metric": null,
-      "leaderboard_value": null,
-      "leaderboard_split": null,
-      "leaderboard_source": null,
-      "leaderboard_provider": null
+      "leaderboard_metric": "AUROC",
+      "leaderboard_value": 0.763,
+      "leaderboard_split": "scaffold",
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model; same dataset as TDC HIV",
+      "leaderboard_provider": "moleculenet"
     }
   },
   "auroc_mean": 0.8396514424858206,
   "aupr_mean": 0.48735360908799646,
-  "leaderboard_metric": null,
-  "leaderboard_value": null,
-  "leaderboard_split": null,
-  "leaderboard_source": null,
-  "leaderboard_provider": null
+  "leaderboard_metric": "AUROC",
+  "leaderboard_value": 0.763,
+  "leaderboard_split": "scaffold",
+  "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model; same dataset as TDC HIV",
+  "leaderboard_provider": "moleculenet",
+  "size_bytes": 745227580
 }

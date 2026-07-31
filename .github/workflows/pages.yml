@@ -8,8 +8,6 @@ on:
       - "site/**"
       - "scripts/export_catalog.py"
       - ".github/workflows/pages.yml"
-  schedule:
-    - cron: "17 6 * * *"   # daily — refreshes S3 availability badges
   workflow_dispatch:
 
 permissions:
