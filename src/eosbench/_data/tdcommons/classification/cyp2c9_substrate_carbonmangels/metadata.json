@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "cyp2c9_substrate_carbonmangels",
   "task": "classification",
-  "last_updated": "2026-06-16",
+  "last_updated": "2026-07-31",
   "n_molecules": 669,
   "n_columns": 1,
   "featurizers": [
@@ -32,8 +32,8 @@
       "leaderboard_metric": "AUPRC",
       "leaderboard_value": 0.474,
       "leaderboard_split": "scaffold",
-      "leaderboard_source": "MiniMol, Polaris TDC ADMET leaderboard",
-      "leaderboard_provider": "polaris"
+      "leaderboard_provider": "polaris",
+      "leaderboard_source": "MiniMol, Polaris TDC ADMET leaderboard"
     }
   },
   "auroc_mean": 0.6236167394739287,
@@ -41,7 +41,7 @@
   "leaderboard_metric": "AUPRC",
   "leaderboard_value": 0.474,
   "leaderboard_split": "scaffold",
-  "leaderboard_source": "MiniMol, Polaris TDC ADMET leaderboard",
   "leaderboard_provider": "polaris",
-  "size_bytes": 12125411
+  "leaderboard_source": "MiniMol, Polaris TDC ADMET leaderboard",
+  "size_bytes": 12162875
 }

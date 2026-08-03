@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "bioavailability_ma",
   "task": "classification",
-  "last_updated": "2026-06-16",
+  "last_updated": "2026-07-31",
   "n_molecules": 640,
   "n_columns": 1,
   "featurizers": [
@@ -20,10 +20,10 @@
       "n_samples": 640,
       "n_positives": 492,
       "n_negatives": 148,
-      "random_auroc_mean": 0.7525864201479966,
-      "random_auroc_std": 0.04812038730551197,
-      "random_aupr_mean": 0.8949497696846673,
-      "random_aupr_std": 0.01830484240434283,
+      "random_auroc_mean": 0.7526544473588809,
+      "random_auroc_std": 0.047890134225705185,
+      "random_aupr_mean": 0.8950079902746613,
+      "random_aupr_std": 0.018216287464058702,
       "scaffold_auroc": 0.6789158629863652,
       "scaffold_aupr": 0.8376052742604473,
       "scaffold_split_method": "tdc-scaffold",
@@ -32,16 +32,16 @@
       "leaderboard_metric": "AUROC",
       "leaderboard_value": 0.942,
       "leaderboard_split": "scaffold",
-      "leaderboard_source": "MiniMol, Polaris TDC ADMET leaderboard",
-      "leaderboard_provider": "polaris"
+      "leaderboard_provider": "polaris",
+      "leaderboard_source": "MiniMol, Polaris TDC ADMET leaderboard"
     }
   },
-  "auroc_mean": 0.7525864201479966,
-  "aupr_mean": 0.8949497696846673,
+  "auroc_mean": 0.7526544473588809,
+  "aupr_mean": 0.8950079902746613,
   "leaderboard_metric": "AUROC",
   "leaderboard_value": 0.942,
   "leaderboard_split": "scaffold",
-  "leaderboard_source": "MiniMol, Polaris TDC ADMET leaderboard",
   "leaderboard_provider": "polaris",
-  "size_bytes": 11599985
+  "leaderboard_source": "MiniMol, Polaris TDC ADMET leaderboard",
+  "size_bytes": 11635829
 }

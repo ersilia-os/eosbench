@@ -11,7 +11,8 @@ table of SMILES + binary labels it produces the full on-disk layout eosbench exp
         metadata.json
     src/eosbench/_data/{source}/{task}/{name}/metadata.json   # bundled copy
 
-Requires the optional ``prepare`` extras: ``pip install -e ".[prepare]"``.
+Requires the optional per-source ``prepare-*`` extras, e.g. ``pip install -e
+".[prepare-moleculenet]"`` (or ``prepare-tdcommons`` / ``prepare-polaris``).
 """
 
 from __future__ import annotations

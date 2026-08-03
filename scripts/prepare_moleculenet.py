@@ -9,7 +9,7 @@ RandomForest baseline, and attaches leaderboard references.
 
 Usage::
 
-    pip install -e ".[prepare]"
+    pip install -e ".[prepare-moleculenet]"
     python scripts/prepare_moleculenet.py                 # default subset
     python scripts/prepare_moleculenet.py --datasets bbbp,tox21
     python scripts/prepare_moleculenet.py --datasets all --n_folds 5 --seed 42

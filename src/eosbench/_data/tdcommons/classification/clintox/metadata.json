@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "clintox",
   "task": "classification",
-  "last_updated": "2026-06-16",
+  "last_updated": "2026-07-31",
   "n_molecules": 1478,
   "n_columns": 1,
   "featurizers": [
@@ -20,28 +20,28 @@
       "n_samples": 1478,
       "n_positives": 112,
       "n_negatives": 1366,
-      "random_auroc_mean": 0.757421939110292,
-      "random_auroc_std": 0.057049398794049855,
-      "random_aupr_mean": 0.2586503820432194,
-      "random_aupr_std": 0.04642556829921189,
+      "random_auroc_mean": 0.7575037413660073,
+      "random_auroc_std": 0.05710137369634704,
+      "random_aupr_mean": 0.2586340367660229,
+      "random_aupr_std": 0.046403843598994625,
       "scaffold_auroc": 0.6845238095238095,
-      "scaffold_aupr": 0.2613159991325935,
+      "scaffold_aupr": 0.26131599913259357,
       "scaffold_split_method": "tdc-scaffold",
       "scaffold_test_positives": 24,
       "scaffold_test_negatives": 273,
       "leaderboard_metric": "AUROC",
       "leaderboard_value": 0.832,
       "leaderboard_split": "random",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg); same dataset as TDC ClinTox",
-      "leaderboard_provider": "moleculenet"
+      "leaderboard_provider": "moleculenet",
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg); same dataset as TDC ClinTox"
     }
   },
-  "auroc_mean": 0.757421939110292,
-  "aupr_mean": 0.2586503820432194,
+  "auroc_mean": 0.7575037413660073,
+  "aupr_mean": 0.2586340367660229,
   "leaderboard_metric": "AUROC",
   "leaderboard_value": 0.832,
   "leaderboard_split": "random",
-  "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg); same dataset as TDC ClinTox",
   "leaderboard_provider": "moleculenet",
-  "size_bytes": 26800454
+  "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg); same dataset as TDC ClinTox",
+  "size_bytes": 26883364
 }

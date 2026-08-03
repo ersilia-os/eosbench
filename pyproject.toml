@@ -27,20 +27,43 @@ dev = [
   "flake8",
 ]
 # Tooling for building new datasets (scripts/prepare_*.py). Not needed to consume eosbench.
-prepare = [
+# Split per prepare script rather than one shared "prepare" extra: PyTDC (needed only by
+# prepare_tdcommons.py) pulls in cellxgene-census/tiledbsoma/aiobotocore, which want a much
+# newer AWS SDK stack than polaris-lib (needed only by prepare_polaris.py) allows -- pip's
+# resolver can't satisfy both at once, and it's not fixable by picking a different PyTDC
+# version since the conflict is with polaris-lib's boto3 pin, not with PyTDC's own rdkit
+# range. Since prepare_moleculenet.py needs neither, each script gets exactly what it needs.
+prepare-moleculenet = [
+  "rdkit",
+  "scikit-learn",
+]
+prepare-tdcommons = [
   # Pinned: rdkit>=2026.3 raises RuntimeError("bad bond stereo") in
   # MurckoScaffold.MurckoScaffoldSmiles for a narrow class of cross-conjugated stereo
-  # bonds (e.g. some tdcommons/ames molecules) that 2025.9.x handles fine. Re-evaluate
-  # the pin once that regression is fixed upstream.
-  "rdkit==2025.9.6",
+  # bonds (e.g. some tdcommons/ames molecules); 2025.9.x handles those fine but in turn
+  # can't handle a handful of exotic organometallic complexes (e.g. in tdcommons/hiv)
+  # that 2023.9.6 -- the version PyTDC requires below -- handles correctly. Also keeps
+  # `pip install -e ".[prepare-tdcommons]"` resolvable as one command: rdkit and PyTDC's
+  # declared version ranges must not conflict. Re-evaluate if either RDKit regression is
+  # fixed upstream.
+  "rdkit==2023.9.6",
+  "scikit-learn",
+  # Pinned: PyTDC 0.3.x-0.4.5-ish is missing ~15 datasets (e.g. hlm, herg_karim, the
+  # Butkiewicz HTS panel) from its own dataset registry (tdc/metadata.py) -- confirmed by
+  # inspecting the package source directly, not just the (stale) docs site -- and also has
+  # a bug in tdc/utils/split.py: create_scaffold_split() calls print_sys() to warn about an
+  # unparseable-for-scaffolding molecule and continue, but never imports it, so it crashes
+  # instead. Both are fixed by 0.4.17 onwards; PyTDC>=1.0 pulls in a large, unrelated
+  # dependency tree (transformers, cellxgene-census, ...) for modalities eosbench doesn't
+  # use, and 1.1.15 specifically has an orphaned cellxgene-census==1.15.0 pin that no
+  # longer resolves. 0.4.17 is the smallest version bump that has both fixes and installs
+  # cleanly.
+  "PyTDC==0.4.17",
+]
+prepare-polaris = [
+  "rdkit",
   "scikit-learn",
   "polaris-lib",
-  # Pinned: PyTDC>=1.0 pulls in an unrelated, much heavier dependency tree (transformers,
-  # datasets, cellxgene-census, ...) for modalities eosbench doesn't use, and several 1.x
-  # releases don't support Python 3.12; some don't even install (cellxgene-census pin
-  # orphaned on PyPI). 0.3.6 is the newest release that is both Python-3.12-compatible
-  # and installable.
-  "PyTDC==0.3.6",
 ]
 
 [project.scripts]

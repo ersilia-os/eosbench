@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "sarscov2_3clpro_diamond",
   "task": "classification",
-  "last_updated": "2026-06-16",
+  "last_updated": "2026-07-31",
   "n_molecules": 880,
   "n_columns": 1,
   "featurizers": [
@@ -32,8 +32,8 @@
       "leaderboard_metric": null,
       "leaderboard_value": null,
       "leaderboard_split": null,
-      "leaderboard_source": null,
-      "leaderboard_provider": null
+      "leaderboard_provider": null,
+      "leaderboard_source": null
     }
   },
   "auroc_mean": 0.7597779179606625,
@@ -41,7 +41,7 @@
   "leaderboard_metric": null,
   "leaderboard_value": null,
   "leaderboard_split": null,
-  "leaderboard_source": null,
   "leaderboard_provider": null,
-  "size_bytes": 15927232
+  "leaderboard_source": null,
+  "size_bytes": 15976512
 }

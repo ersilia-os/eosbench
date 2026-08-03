@@ -2,13 +2,19 @@
 
 Auto-discovers the single-prediction ADME, Tox and HTS datasets via PyTDC, keeps the
 **binary-classification** ones (regression datasets are skipped automatically, each
-logged with a reason), and writes one eosbench dataset *family* per dataset — each a
-1-column family, since these TDC tasks are single-endpoint. Sizes span ~880 molecules
-(SARS-CoV-2 assays) to ~340k (Butkiewicz HTS bioassays), giving benchmarks of varied scale.
+logged with a reason), and writes one eosbench dataset *family* per dataset. Most are
+1-column families (single-endpoint); a handful (tox21, toxcast, herg_central) are
+multi-label on TDC and become multi-column families via `prepare_multi_label` -- TDC
+serves each label as a separate call with its own molecule subset, so those are aligned
+by Drug_ID into one conserved family rather than read off a single flat table. Sizes span
+~880 molecules (SARS-CoV-2 assays) to ~340k (Butkiewicz HTS bioassays, herg_central).
 
 Like the Polaris source (and unlike MoleculeNet, where we compute the scaffold split),
-we honour **TDC's own scaffold split** as the holdout (`scaffold_split_method:
-"tdc-scaffold"`) and add a random K-fold CV alongside. Features (morgan + rdkit) and a
+single-label datasets honour **TDC's own scaffold split** as the holdout
+(`scaffold_split_method: "tdc-scaffold"`); multi-label families have no such split
+available (TDC's per-label splits don't cover the assembled union) and get eosbench's own
+computed Murcko scaffold split instead, like MoleculeNet's multi-column families. A
+random K-fold CV is added alongside either way. Features (morgan + rdkit) and a
 RandomForest baseline are computed by ``scripts/_prepare_common.py``.
 
 IMPORTANT — leaderboard references PREFER **Polaris** over TDC's own leaderboard (which can
@@ -20,7 +26,7 @@ currently nothing to fall back to — datasets outside that group stay blank.
 
 Usage::
 
-    pip install -e ".[prepare]"
+    pip install -e ".[prepare-tdcommons]"
     python scripts/prepare_tdcommons.py                       # all binary ADMET datasets
     python scripts/prepare_tdcommons.py --datasets ames,herg  # specific datasets
     python scripts/prepare_tdcommons.py --limit 5 --no_baseline
@@ -81,6 +87,89 @@ def _group_class(group: str):
     return {"ADME": ADME, "Tox": Tox, "HTS": HTS}[group]
 
 
+def _label_names(name: str) -> list[str] | None:
+    """Label names for a multi-label TDC dataset (e.g. tox21's 12 endpoints), or None for
+    a single-label one. TDC raises for the latter, so that's the signal we key off of --
+    more robust than matching the "please select a label name" text raised deeper inside
+    a dataset-loader call."""
+    from tdc.utils import retrieve_label_name_list
+
+    try:
+        return retrieve_label_name_list(name)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def prepare_multi_label(
+    group: str,
+    name: str,
+    labels: list[str],
+    leaderboard: dict,
+    n_folds: int,
+    seed: int,
+    compute_baseline: bool = True,
+) -> int:
+    """Prepare a multi-label TDC dataset (e.g. tox21, toxcast, herg_central) as one family.
+
+    Unlike MoleculeNet's multi-column sets (one flat CSV, every label pre-aligned by row),
+    TDC serves each label of a multi-label dataset as a *separate* call, and different
+    labels can cover different molecule sets (e.g. tox21's NR-AR: 7265 rows vs its
+    NR-AhR: 6549, only 6460 overlapping). So this aligns labels itself: a Drug_ID -> Drug
+    (SMILES) map plus one Drug_ID -> y map per binary-coercible label, then builds the
+    family over the *union* of Drug_IDs (NaN where a molecule wasn't in a given label's
+    set) -- the same "conserved family" shape every other source produces.
+
+    No family-level holdout is passed to `prepare_family`: TDC has no split that covers
+    the whole union (each label's own `get_split()` only spans that label's own molecule
+    subset), so this deliberately falls back to `prepare_family`'s own internal Murcko
+    scaffold split -- exactly what `prepare_moleculenet.py` already does for all of *its*
+    multi-column families (tox21, toxcast, clintox, sider, muv).
+    """
+    cls = _group_class(group)
+    drug_map: dict[str, str] = {}
+    label_series: dict[str, dict[str, float]] = {}
+
+    for label in labels:
+        try:
+            df = cls(name=name, label_name=label, path=str(TDC_RAW_CACHE)).get_data()
+        except Exception as e:  # noqa: BLE001
+            print(f"  [{name}/{label}] skipped: load failed ({e})")
+            continue
+        if not {"Drug", "Y", "Drug_ID"}.issubset(df.columns):
+            print(f"  [{name}/{label}] skipped: unexpected columns {list(df.columns)}")
+            continue
+        coerced = common.coerce_binary(df["Y"])
+        if coerced is None:
+            print(f"  [{name}/{label}] skipped: not binary classification (likely regression)")
+            continue
+        for drug_id, drug in zip(df["Drug_ID"], df["Drug"]):
+            drug_map.setdefault(drug_id, drug)
+        label_series[label] = dict(zip(df["Drug_ID"], coerced))
+
+    if not label_series:
+        print(f"  [{name}] skipped: no usable binary labels")
+        return 0
+
+    drug_ids = sorted(drug_map)  # deterministic order
+    smiles = [drug_map[d] for d in drug_ids]
+    label_df = pd.DataFrame(
+        {label: [series.get(d) for d in drug_ids] for label, series in label_series.items()}
+    )
+
+    common.prepare_family(
+        source=SOURCE,
+        family=name,
+        smiles=smiles,
+        label_df=label_df,
+        task=TASK,
+        n_folds=n_folds,
+        seed=seed,
+        leaderboard=leaderboard.get(name),
+        compute_baseline=compute_baseline,
+    )
+    return 1
+
+
 def prepare_one(
     group: str,
     name: str,
@@ -90,10 +179,16 @@ def prepare_one(
     compute_baseline: bool = True,
 ) -> int:
     """Prepare ONE dataset. Returns 1 if written, 0 if skipped (reason logged)."""
+    labels = _label_names(name)
+    if labels is not None:
+        return prepare_multi_label(
+            group, name, labels, leaderboard, n_folds, seed, compute_baseline
+        )
+
     cls = _group_class(group)
     try:
         d = cls(name=name, path=str(TDC_RAW_CACHE))
-    except Exception as e:  # noqa: BLE001 - e.g. multi-label datasets needing label_name
+    except Exception as e:  # noqa: BLE001
         print(f"  [{name}] skipped: load failed ({e})")
         return 0
 

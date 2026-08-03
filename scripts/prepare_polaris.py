@@ -12,7 +12,7 @@ we read directly to reconstruct the full labelled data.
 
 Usage::
 
-    pip install -e ".[prepare]"
+    pip install -e ".[prepare-polaris]"
     polaris login                                  # one-time, cached token
     python scripts/prepare_polaris.py                          # all qualifying benchmarks
     python scripts/prepare_polaris.py --datasets owner/slug    # a specific benchmark

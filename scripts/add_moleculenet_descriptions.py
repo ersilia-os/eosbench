@@ -7,7 +7,7 @@ safe to re-run. Does not recompute features, splits, or baselines.
 
 Usage::
 
-    pip install -e ".[prepare]"
+    pip install -e ".[prepare-moleculenet]"
     python scripts/add_moleculenet_descriptions.py            # all families
     python scripts/add_moleculenet_descriptions.py --datasets toxcast,muv
 """

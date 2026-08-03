@@ -369,10 +369,14 @@ With `--all`, a dataset that fails to download is logged and skipped rather than
 ## Preparing new datasets
 
 New datasets are built with the scripts under `scripts/`. These require extra tooling
-(rdkit, scikit-learn) that is **not** needed to consume eosbench:
+(rdkit, scikit-learn, and per-source packages) that is **not** needed to consume eosbench.
+Each `prepare_*.py` script has its own extra — `prepare-moleculenet`, `prepare-tdcommons`,
+`prepare-polaris` — rather than one shared `prepare` extra, since PyTDC (tdcommons) and
+polaris-lib (Polaris) pull in mutually incompatible AWS SDK versions and can't be installed
+together:
 
 ```bash
-pip install -e ".[prepare]"
+pip install -e ".[prepare-moleculenet]"   # or prepare-tdcommons / prepare-polaris
 ```
 
 To add MoleculeNet datasets:

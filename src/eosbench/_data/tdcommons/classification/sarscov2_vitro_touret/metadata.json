@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "sarscov2_vitro_touret",
   "task": "classification",
-  "last_updated": "2026-06-16",
+  "last_updated": "2026-07-31",
   "n_molecules": 1484,
   "n_columns": 1,
   "featurizers": [
@@ -32,8 +32,8 @@
       "leaderboard_metric": null,
       "leaderboard_value": null,
       "leaderboard_split": null,
-      "leaderboard_source": null,
-      "leaderboard_provider": null
+      "leaderboard_provider": null,
+      "leaderboard_source": null
     }
   },
   "auroc_mean": 0.5889370969415244,
@@ -41,7 +41,7 @@
   "leaderboard_metric": null,
   "leaderboard_value": null,
   "leaderboard_split": null,
-  "leaderboard_source": null,
   "leaderboard_provider": null,
-  "size_bytes": 26902869
+  "leaderboard_source": null,
+  "size_bytes": 26985981
 }

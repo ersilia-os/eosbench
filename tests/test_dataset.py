@@ -431,9 +431,11 @@ def test_load_dataset_family_rejects_unknown_column(tmp_path, monkeypatch):
 
 def test_get_catalog_expand_has_column_column():
     expanded = get_catalog(source="tdcommons", expand=True)
+    collapsed = get_catalog(source="tdcommons")
     assert "column" in expanded.columns
-    # single-column families: one column row each, equal to the collapsed count.
-    assert len(expanded) == len(get_catalog(source="tdcommons"))
+    # One expanded row per label column; collapsed rows are 1-per-family regardless of
+    # n_columns (most tdcommons families are single-column, but e.g. tox21 has 12).
+    assert len(expanded) == collapsed["n_columns"].sum()
 
 
 def test_make_id_is_deterministic_and_distinct():
