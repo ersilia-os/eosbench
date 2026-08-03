@@ -378,6 +378,7 @@ def _leaderboard_fields(leaderboard: dict | None) -> dict:
     return {
         "leaderboard_metric": lb.get("metric"),
         "leaderboard_value": lb.get("value"),
+        "leaderboard_std": lb.get("std"),
         "leaderboard_split": lb.get("split"),
         "leaderboard_provider": lb.get("provider"),
         "leaderboard_source": lb.get("source"),

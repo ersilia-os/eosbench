@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "sarscov2_vitro_touret",
   "task": "classification",
-  "last_updated": "2026-07-31",
+  "last_updated": "2026-08-03",
   "n_molecules": 1484,
   "n_columns": 1,
   "featurizers": [
@@ -43,5 +43,5 @@
   "leaderboard_split": null,
   "leaderboard_provider": null,
   "leaderboard_source": null,
-  "size_bytes": 26985981
+  "size_bytes": 26902869
 }

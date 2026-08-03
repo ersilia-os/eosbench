@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "cyp1a2_veith",
   "task": "classification",
-  "last_updated": "2026-07-31",
+  "last_updated": "2026-08-03",
   "n_molecules": 12579,
   "n_columns": 1,
   "featurizers": [
@@ -20,10 +20,10 @@
       "n_samples": 12579,
       "n_positives": 5829,
       "n_negatives": 6750,
-      "random_auroc_mean": 0.9307063662238495,
-      "random_auroc_std": 0.0023570257159361914,
-      "random_aupr_mean": 0.922582596938285,
-      "random_aupr_std": 0.0029707732357604323,
+      "random_auroc_mean": 0.9307064298067456,
+      "random_auroc_std": 0.0023570857004301094,
+      "random_aupr_mean": 0.9225827628158463,
+      "random_aupr_std": 0.0029706849257246006,
       "scaffold_auroc": 0.9277184962557931,
       "scaffold_aupr": 0.9303488271396527,
       "scaffold_split_method": "tdc-scaffold",
@@ -36,12 +36,12 @@
       "leaderboard_source": "CYPi-DNNpredictor, JCIM 2024 (doi:10.1021/acs.jcim.3c01396), external validation"
     }
   },
-  "auroc_mean": 0.9307063662238495,
-  "aupr_mean": 0.922582596938285,
+  "auroc_mean": 0.9307064298067456,
+  "aupr_mean": 0.9225827628158463,
   "leaderboard_metric": "AUROC",
   "leaderboard_value": 0.97,
   "leaderboard_split": "external (paper)",
   "leaderboard_provider": "literature",
   "leaderboard_source": "CYPi-DNNpredictor, JCIM 2024 (doi:10.1021/acs.jcim.3c01396), external validation",
-  "size_bytes": 228641594
+  "size_bytes": 227937078
 }

@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "cyp2d6_substrate_carbonmangels",
   "task": "classification",
-  "last_updated": "2026-07-31",
+  "last_updated": "2026-08-03",
   "n_molecules": 667,
   "n_columns": 1,
   "featurizers": [
@@ -43,5 +43,5 @@
   "leaderboard_split": "scaffold",
   "leaderboard_provider": "polaris",
   "leaderboard_source": "ContextPred, Polaris TDC ADMET leaderboard",
-  "size_bytes": 12126412
+  "size_bytes": 12089060
 }

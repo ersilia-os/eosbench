@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "herg",
   "task": "classification",
-  "last_updated": "2026-07-31",
+  "last_updated": "2026-08-03",
   "n_molecules": 655,
   "n_columns": 1,
   "featurizers": [
@@ -43,5 +43,5 @@
   "leaderboard_split": "scaffold",
   "leaderboard_provider": "polaris",
   "leaderboard_source": "MapLight + GNN, Polaris TDC ADMET leaderboard",
-  "size_bytes": 11911385
+  "size_bytes": 11874701
 }

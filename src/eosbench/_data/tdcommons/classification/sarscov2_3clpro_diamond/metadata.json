@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "sarscov2_3clpro_diamond",
   "task": "classification",
-  "last_updated": "2026-07-31",
+  "last_updated": "2026-08-03",
   "n_molecules": 880,
   "n_columns": 1,
   "featurizers": [
@@ -43,5 +43,5 @@
   "leaderboard_split": null,
   "leaderboard_provider": null,
   "leaderboard_source": null,
-  "size_bytes": 15976512
+  "size_bytes": 15927232
 }

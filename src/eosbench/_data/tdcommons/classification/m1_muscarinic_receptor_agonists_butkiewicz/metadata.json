@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "m1_muscarinic_receptor_agonists_butkiewicz",
   "task": "classification",
-  "last_updated": "2026-06-16",
+  "last_updated": "2026-08-03",
   "n_molecules": 61829,
   "n_columns": 1,
   "featurizers": [
@@ -32,8 +32,8 @@
       "leaderboard_metric": null,
       "leaderboard_value": null,
       "leaderboard_split": null,
-      "leaderboard_source": null,
-      "leaderboard_provider": null
+      "leaderboard_provider": null,
+      "leaderboard_source": null
     }
   },
   "auroc_mean": 0.6817937278291579,
@@ -41,7 +41,7 @@
   "leaderboard_metric": null,
   "leaderboard_value": null,
   "leaderboard_split": null,
-  "leaderboard_source": null,
   "leaderboard_provider": null,
+  "leaderboard_source": null,
   "size_bytes": 1120070686
 }

@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "bbb_martins",
   "task": "classification",
-  "last_updated": "2026-07-31",
+  "last_updated": "2026-08-03",
   "n_molecules": 2030,
   "n_columns": 1,
   "featurizers": [
@@ -24,8 +24,8 @@
       "random_auroc_std": 0.020135702955588378,
       "random_aupr_mean": 0.9651116753953296,
       "random_aupr_std": 0.014078378368742742,
-      "scaffold_auroc": 0.8839213573929438,
-      "scaffold_aupr": 0.9583598054857375,
+      "scaffold_auroc": 0.8838828825362626,
+      "scaffold_aupr": 0.9583337880253611,
       "scaffold_split_method": "tdc-scaffold",
       "scaffold_test_positives": 329,
       "scaffold_test_negatives": 79,
@@ -43,5 +43,5 @@
   "leaderboard_split": "scaffold",
   "leaderboard_provider": "polaris",
   "leaderboard_source": "MiniMol, Polaris TDC ADMET leaderboard",
-  "size_bytes": 36903360
+  "size_bytes": 36789680
 }
