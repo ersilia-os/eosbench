@@ -11,11 +11,13 @@ by Drug_ID into one conserved family rather than read off a single flat table. S
 
 Like the Polaris source (and unlike MoleculeNet, where we compute the scaffold split),
 single-label datasets honour **TDC's own scaffold split** as the holdout
-(`scaffold_split_method: "tdc-scaffold"`); multi-label families have no such split
-available (TDC's per-label splits don't cover the assembled union) and get eosbench's own
-computed Murcko scaffold split instead, like MoleculeNet's multi-column families. A
-random K-fold CV is added alongside either way. Features (morgan + rdkit) and a
-RandomForest baseline are computed by ``scripts/_prepare_common.py``.
+(`scaffold_split_method: "tdc-scaffold"`), generated with the fixed ``TDC_SCAFFOLD_SEED``
+(see its definition below for why that reproduces the ADMET Benchmark Group's leaderboard
+test set exactly); multi-label families have no such split available (TDC's per-label
+splits don't cover the assembled union) and get eosbench's own computed Murcko scaffold
+split instead, like MoleculeNet's multi-column families. A random K-fold CV is added
+alongside either way. Features (morgan + rdkit) and a RandomForest baseline are computed
+by ``scripts/_prepare_common.py``.
 
 IMPORTANT — leaderboard references PREFER **Polaris** over TDC's own leaderboard (which can
 contain errors). Published best-model scores are read from the curated
@@ -38,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -48,6 +51,16 @@ import _prepare_common as common
 SOURCE = "tdcommons"
 TASK = "classification"
 HOLDOUT_METHOD = "tdc-scaffold"
+# TDC's ADMET Benchmark Group ships a *frozen* test.csv per dataset for its leaderboard;
+# `get_split()` doesn't read that file -- it independently recomputes a scaffold split with
+# whatever seed it's given. Verified empirically (via tdc.benchmark_group.admet_group()) that
+# calling get_split(method="scaffold", seed=42) reproduces that frozen test set byte-for-byte
+# (exact Drug_ID match) for every ADMET Benchmark Group member checked -- 42 is the seed TDC
+# itself used to generate those files, not an arbitrary choice. Kept as its own constant,
+# independent of --seed (which also drives the random CV folds and the RF random_state), so
+# re-running with a different --seed for those unrelated reasons can never silently break
+# leaderboard comparability.
+TDC_SCAFFOLD_SEED = 42
 LEADERBOARD_JSON = Path(__file__).resolve().parent / "tdcommons_leaderboard.json"
 # PyTDC's dataset loaders default to path="./data" for their own raw-download cache.
 # common.DATA_ROOT is also "./data" (relative to the repo root) -- the exact directory
@@ -203,9 +216,27 @@ def prepare_one(
         print(f"  [{name}] skipped: not binary classification (likely regression)")
         return 0
 
+    # Guard the TDC_SCAFFOLD_SEED assumption above: we always request a *scaffold* split
+    # below, which only reproduces the ADMET Benchmark Group's leaderboard test set when
+    # that dataset's official split really is "scaffold" (true for all 22 members today,
+    # per tdc.metadata.bm_split_names["admet_group"] -- but unchecked, so a future TDC
+    # dataset using a different split would otherwise silently get an incomparable
+    # scaffold_auroc next to a "polaris" leaderboard reference). Hard stop rather than
+    # warn-and-continue: this would invalidate leaderboard comparability, not just this
+    # one dataset's numbers.
+    lb_entry = leaderboard.get(name, {})
+    if lb_entry.get("provider") == "polaris" and lb_entry.get("split") not in (None, "scaffold"):
+        sys.exit(
+            f"[{name}] leaderboard split is {lb_entry['split']!r} (provider=polaris), but "
+            "prepare_one() always computes a scaffold holdout -- scaffold_auroc would not "
+            "be comparable to the leaderboard reference. Fix TDC_SCAFFOLD_SEED/get_split() "
+            "handling for this dataset before proceeding."
+        )
+
     # Honour TDC's scaffold split as the holdout: mark test rows, everything else train.
+    # Uses TDC_SCAFFOLD_SEED (not the CV/RF `seed` param) -- see its definition above.
     try:
-        sp = d.get_split(method="scaffold", seed=seed)
+        sp = d.get_split(method="scaffold", seed=TDC_SCAFFOLD_SEED)
         test_ids = set(sp["test"]["Drug_ID"])
     except Exception as e:  # noqa: BLE001
         print(f"  [{name}] skipped: scaffold split failed ({e})")

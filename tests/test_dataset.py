@@ -27,6 +27,8 @@ def test_get_catalog_returns_summary_dataframe():
         "ratio",
         "leaderboard_score",
         "leaderboard_metric",
+        "leaderboard_split",
+        "leaderboard_provider",
         "last_updated",
     ]
 
@@ -43,6 +45,8 @@ def test_get_catalog_returns_summary_dataframe():
     # Leaderboard reference comes from Polaris (deterministic, curated).
     assert ames["leaderboard_metric"] == "AUROC"
     assert ames["leaderboard_score"] == pytest.approx(0.871)
+    assert ames["leaderboard_split"] == "scaffold"
+    assert ames["leaderboard_provider"] == "polaris"
 
 
 def test_mirror_dataset_materializes_expected_folder_structure(tmp_path, monkeypatch):

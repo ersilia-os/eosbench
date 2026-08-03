@@ -10,6 +10,7 @@ from eosbench.cli.catalog import (
     _human_count,
     _grade_color,
     _ratio_cell,
+    _skew_cell,
     _leaderboard_cell,
     _display_columns,
 )
@@ -151,6 +152,8 @@ def test_catalog_columns_are_task_aware():
         "ratio",
         "leaderboard_score",
         "leaderboard_metric",
+        "leaderboard_split",
+        "leaderboard_provider",
         "last_updated",
     ]
     assert catalog_columns("regression") == [
@@ -166,6 +169,8 @@ def test_catalog_columns_are_task_aware():
         "skew",
         "leaderboard_score",
         "leaderboard_metric",
+        "leaderboard_split",
+        "leaderboard_provider",
         "last_updated",
     ]
     assert "column" in catalog_columns("regression", expand=True)
@@ -173,24 +178,32 @@ def test_catalog_columns_are_task_aware():
 
 
 def test_catalog_columns_include_leaderboard():
-    assert catalog_columns("classification")[-3:] == [
+    assert catalog_columns("classification")[-5:] == [
         "leaderboard_score",
         "leaderboard_metric",
+        "leaderboard_split",
+        "leaderboard_provider",
         "last_updated",
     ]
-    assert catalog_columns("regression")[-3:] == [
+    assert catalog_columns("regression")[-5:] == [
         "leaderboard_score",
         "leaderboard_metric",
+        "leaderboard_split",
+        "leaderboard_provider",
         "last_updated",
     ]
 
 
 def test_get_catalog_surfaces_leaderboard_for_moleculenet():
     df = get_catalog(source="moleculenet")
-    assert {"leaderboard_score", "leaderboard_metric"} <= set(df.columns)
+    assert {
+        "leaderboard_score", "leaderboard_metric", "leaderboard_split", "leaderboard_provider",
+    } <= set(df.columns)
     sider = df.loc[df["name"] == "sider"].iloc[0]
     assert sider["leaderboard_metric"] == "AUROC"
     assert sider["leaderboard_score"] == pytest.approx(0.638)
+    assert sider["leaderboard_split"] == "random"
+    assert sider["leaderboard_provider"] == "moleculenet"
 
 
 def test_get_catalog_leaderboard_for_tdcommons_from_polaris():
@@ -199,6 +212,13 @@ def test_get_catalog_leaderboard_for_tdcommons_from_polaris():
     ames = df.loc["ames"]
     assert ames["leaderboard_metric"] == "AUROC"
     assert ames["leaderboard_score"] == pytest.approx(0.871)
+    assert ames["leaderboard_split"] == "scaffold"
+    assert ames["leaderboard_provider"] == "polaris"
+    # clintox is cross-filled from MoleculeNet (TDC's ADMET group doesn't cover it), so its
+    # leaderboard_split describes MoleculeNet's own random split, not this row's own scaffold
+    # split -- leaderboard_provider is what signals that mismatch is expected.
+    assert df.loc["clintox", "leaderboard_split"] == "random"
+    assert df.loc["clintox", "leaderboard_provider"] == "moleculenet"
     # CYP inhibition tasks are ranked by AUPRC.
     assert df.loc["cyp2d6_veith", "leaderboard_metric"] == "AUPRC"
     # clintox is not in the ADMET group, but is cross-filled from MoleculeNet.
@@ -285,6 +305,15 @@ def test_ratio_cell_bar_length_tracks_value():
     assert _ratio_cell(None) == "[dim]-[/dim]"   # blanks dimmed
 
 
+def test_skew_cell_is_center_anchored_and_fills_toward_the_skewed_side():
+    assert _skew_cell(0.0) == "[dim]▱▱▰▱▱[/dim] +0.00"     # symmetric baseline: center only
+    assert _skew_cell(0.49) == "[dim]▱▱▰▱▱[/dim] +0.49"    # below the fill threshold: still center-only
+    assert _skew_cell(-1.17) == "[dim]▱▰▰▱▱[/dim] -1.17"   # left-tailed: fills toward the left
+    assert _skew_cell(-3.0) == "[dim]▰▰▰▱▱[/dim] -3.00"    # saturates at |skew|>=2
+    assert _skew_cell(3.0) == "[dim]▱▱▰▰▰[/dim] +3.00"     # right-tailed: fills toward the right
+    assert _skew_cell(None) == "[dim]-[/dim]"              # blanks dimmed, same as ratio
+
+
 def test_leaderboard_cell_merges_score_and_metric():
     cell = _leaderboard_cell({"leaderboard_score": 0.871, "leaderboard_metric": "AUROC"})
     assert "0.871" in cell and "AUROC" in cell
@@ -297,6 +326,11 @@ def test_display_columns_merges_leaderboard_pair():
     headers = [h for h, _justify, _render in _display_columns(df)]
     assert "leaderboard" in headers
     assert "leaderboard_score" not in headers and "leaderboard_metric" not in headers
+    # leaderboard_split/leaderboard_provider stay their own plain columns (display names
+    # "lb_split"/"lb_provider"), right after the merged "leaderboard" one, in df order.
+    assert "lb_split" in headers and "lb_provider" in headers
+    assert headers.index("lb_split") == headers.index("leaderboard") + 1
+    assert headers.index("lb_provider") == headers.index("lb_split") + 1
     # every renderer returns a string for a sample row (no crash)
     row = df.iloc[0]
     assert all(isinstance(render(row), str) for _h, _j, render in _display_columns(df))

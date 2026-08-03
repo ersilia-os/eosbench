@@ -29,6 +29,8 @@ SORT_COLUMNS = [
     "ratio",
     "leaderboard_score",
     "leaderboard_metric",
+    "leaderboard_split",
+    "leaderboard_provider",
     "last_updated",
 ]
 
@@ -51,6 +53,8 @@ DISPLAY_NAMES = {
     "n_columns": "columns",
     "leaderboard_score": "lb_score",
     "leaderboard_metric": "lb_metric",
+    "leaderboard_split": "lb_split",
+    "leaderboard_provider": "lb_provider",
     "available": "on S3",
 }
 
@@ -185,17 +189,20 @@ def _ratio_cell(v) -> str:
 
 
 def _skew_cell(v) -> str:
-    """Center-anchored bar + signed value: the regression analog of the class-balance
-    cue. Fills left for negative (left-tailed) skew, right for positive; |skew|>=2 saturates."""
+    """The regression analog of the class-balance cue. Skewness is unbounded (unlike ratio,
+    naturally in [0, 1]), so the bar is center-anchored instead of left-anchored: the center
+    cell is always filled as a "symmetric/balanced" baseline (▱▱▰▱▱ by default), and the two
+    cells on the skewed side fill outward from center as |skew| grows, saturating at |skew|>=2.
+    Same glyph set as the ratio bar (no separate divider glyph) for visual consistency."""
     if _is_missing(v):
         return "[dim]-[/dim]"
     s = float(v)
-    fill = round(min(abs(s) / 2.0, 1.0) * 2)  # 0, 1, or 2 cells
+    extra = round(min(abs(s) / 2.0, 1.0) * 2)  # 0, 1, or 2 cells beyond the center
     if s < 0:
-        left, right = "▱" * (2 - fill) + "▰" * fill, "▱▱"
+        left, right = "▱" * (2 - extra) + "▰" * extra, "▱▱"
     else:
-        left, right = "▱▱", "▰" * fill + "▱" * (2 - fill)
-    return f"[dim]{left}▏{right}[/dim] {s:+.2f}"
+        left, right = "▱▱", "▰" * extra + "▱" * (2 - extra)
+    return f"[dim]{left}▰{right}[/dim] {s:+.2f}"
 
 
 def _size_cell(v) -> str:
@@ -387,6 +394,15 @@ columns (which appear depends on --task; --sort_by key in parentheses):
   rmse, r2      Baseline RMSE / R-squared.             [regression]
   leaderboard   Best published score + its metric, e.g. "0.871 AUROC", where known.
                 (sort with --sort_by leaderboard_score)
+  lb_split      What split that published score was computed on (e.g. "scaffold",
+                "random"). Only directly comparable to this row's own scaffold split
+                when lb_provider is this same source (e.g. tdcommons via "polaris",
+                which mirrors TDC's own ADMET Benchmark Group) -- when lb_provider is a
+                different source (e.g. "moleculenet"), lb_split describes *that other
+                dataset's* split, not this one's.
+  lb_provider   Where the published score came from: this source's own leaderboard, or
+                cross-filled from a different one covering the same assay (e.g. a
+                tdcommons row citing a MoleculeNet number) -- see lb_split above.
   last_updated  Date the dataset entry was last refreshed (YYYY-MM-DD).
   on S3         Green check / red cross: whether the dataset is present on the public
                 S3 bucket right now. [--check_availability only]
