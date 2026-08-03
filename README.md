@@ -343,17 +343,26 @@ eosbench fetch --source tdcommons --dataset ames --featurization rdkit --output_
 eosbench fetch --source moleculenet --dataset bbbp --featurization none
 # copy from a locally prepared mirror instead of S3 (e.g. before uploading)
 eosbench fetch --source tdcommons --dataset ames --from_dir data
+
+# batch: every dataset matching --source/--task/--name, in one command
+eosbench fetch --all --task classification --source tdcommons    # every tdcommons classification dataset
+eosbench fetch --all --task classification --name cyp            # every classification dataset with "cyp" in the name
+eosbench fetch --all --task classification                       # every classification dataset, any source
 ```
 
 | argument | default | description |
 |----------|---------|-------------|
 | `--id` | — | eosbench identifier; resolves source/dataset/task automatically (use instead of `--source`/`--dataset`) |
-| `--source` | required* | `tdcommons` or `moleculenet` (*not needed with `--id`) |
-| `--dataset` | required* | dataset name, e.g. `ames` (*not needed with `--id`) |
+| `--source` | required* | `tdcommons` or `moleculenet` (*not needed with `--id`; with `--all`, omit to cover every source) |
+| `--dataset` | required* | dataset name, e.g. `ames` (*not needed with `--id`; not usable with `--all`) |
+| `--all` | — | fetch every dataset matching `--source`/`--task`/`--name` instead of a single one |
+| `--name` | `None` | filter by name substring (only with `--all`) |
 | `--featurization` | `morgan` | `morgan`, `rdkit`, or `none` |
 | `--output_dir` | `.` | root folder to write into |
 | `--task` | `classification` | `classification` or `regression` |
 | `--from_dir` | `None` | copy from a local mirror laid out as `DIR/{source}/{task}/{dataset}/` instead of downloading from S3 |
+
+With `--all`, a dataset that fails to download is logged and skipped rather than aborting the batch; the command exits non-zero if any dataset in the batch failed.
 
 ---
 
