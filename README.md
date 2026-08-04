@@ -1,5 +1,8 @@
 # Ersilia benchmarks for ML training
 
+> **Work in progress:** this repository is under active development. Datasets, APIs, and
+> documentation may change without notice.
+
 A Python package for loading molecular activity datasets used in Ersilia ML development.
 
 > **Important:** This repository is not an official benchmark. Cross-validation splits are arbitrary and were not designed to reproduce any published protocol. Performance numbers obtained here **cannot be directly compared** with results from TDC or any other benchmarking framework.
