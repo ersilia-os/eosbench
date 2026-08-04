@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "choline_transporter_butkiewicz",
   "task": "classification",
-  "last_updated": "2026-06-16",
+  "last_updated": "2026-08-03",
   "n_molecules": 302242,
   "n_columns": 1,
   "featurizers": [
@@ -20,10 +20,10 @@
       "n_samples": 302242,
       "n_positives": 252,
       "n_negatives": 301990,
-      "random_auroc_mean": 0.7589972840290128,
-      "random_auroc_std": 0.03140576335363877,
-      "random_aupr_mean": 0.13389663728264817,
-      "random_aupr_std": 0.050034175895116995,
+      "random_auroc_mean": 0.7589978683880585,
+      "random_auroc_std": 0.031404916175591574,
+      "random_aupr_mean": 0.1339332154025067,
+      "random_aupr_std": 0.05002595199060969,
       "scaffold_auroc": 0.7034552892781485,
       "scaffold_aupr": 0.08783506236258014,
       "scaffold_split_method": "tdc-scaffold",
@@ -31,17 +31,19 @@
       "scaffold_test_negatives": 60402,
       "leaderboard_metric": null,
       "leaderboard_value": null,
+      "leaderboard_std": null,
       "leaderboard_split": null,
-      "leaderboard_source": null,
-      "leaderboard_provider": null
+      "leaderboard_provider": null,
+      "leaderboard_source": null
     }
   },
-  "auroc_mean": 0.7589972840290128,
-  "aupr_mean": 0.13389663728264817,
+  "auroc_mean": 0.7589978683880585,
+  "aupr_mean": 0.1339332154025067,
   "leaderboard_metric": null,
   "leaderboard_value": null,
+  "leaderboard_std": null,
   "leaderboard_split": null,
-  "leaderboard_source": null,
   "leaderboard_provider": null,
+  "leaderboard_source": null,
   "size_bytes": 5475861151
 }

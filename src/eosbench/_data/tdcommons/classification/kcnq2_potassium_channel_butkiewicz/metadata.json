@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "kcnq2_potassium_channel_butkiewicz",
   "task": "classification",
-  "last_updated": "2026-06-16",
+  "last_updated": "2026-08-03",
   "n_molecules": 302343,
   "n_columns": 1,
   "featurizers": [
@@ -31,17 +31,19 @@
       "scaffold_test_negatives": 60424,
       "leaderboard_metric": null,
       "leaderboard_value": null,
+      "leaderboard_std": null,
       "leaderboard_split": null,
-      "leaderboard_source": null,
-      "leaderboard_provider": null
+      "leaderboard_provider": null,
+      "leaderboard_source": null
     }
   },
   "auroc_mean": 0.7639785796958245,
   "aupr_mean": 0.12164162053912139,
   "leaderboard_metric": null,
   "leaderboard_value": null,
+  "leaderboard_std": null,
   "leaderboard_split": null,
-  "leaderboard_source": null,
   "leaderboard_provider": null,
+  "leaderboard_source": null,
   "size_bytes": 5477691252
 }

@@ -2,7 +2,7 @@
   "source": "tdcommons",
   "dataset": "potassium_ion_channel_kir2.1_butkiewicz",
   "task": "classification",
-  "last_updated": "2026-06-16",
+  "last_updated": "2026-08-03",
   "n_molecules": 301431,
   "n_columns": 1,
   "featurizers": [
@@ -20,10 +20,10 @@
       "n_samples": 301431,
       "n_positives": 172,
       "n_negatives": 301259,
-      "random_auroc_mean": 0.7112815161671572,
-      "random_auroc_std": 0.03542313894550571,
-      "random_aupr_mean": 0.03038504963839584,
-      "random_aupr_std": 0.009068080059485518,
+      "random_auroc_mean": 0.711279809022996,
+      "random_auroc_std": 0.0354210998832971,
+      "random_aupr_mean": 0.030522775734375708,
+      "random_aupr_std": 0.009104661147514634,
       "scaffold_auroc": 0.7009272245920959,
       "scaffold_aupr": 0.007697549948172592,
       "scaffold_split_method": "tdc-scaffold",
@@ -31,17 +31,19 @@
       "scaffold_test_negatives": 60247,
       "leaderboard_metric": null,
       "leaderboard_value": null,
+      "leaderboard_std": null,
       "leaderboard_split": null,
-      "leaderboard_source": null,
-      "leaderboard_provider": null
+      "leaderboard_provider": null,
+      "leaderboard_source": null
     }
   },
-  "auroc_mean": 0.7112815161671572,
-  "aupr_mean": 0.03038504963839584,
+  "auroc_mean": 0.711279809022996,
+  "aupr_mean": 0.030522775734375708,
   "leaderboard_metric": null,
   "leaderboard_value": null,
+  "leaderboard_std": null,
   "leaderboard_split": null,
-  "leaderboard_source": null,
   "leaderboard_provider": null,
+  "leaderboard_source": null,
   "size_bytes": 5461171317
 }

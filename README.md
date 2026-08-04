@@ -11,7 +11,12 @@ A Python package for loading molecular activity datasets used in Ersilia ML deve
 Requires Python 3.10+.
 
 ```bash
-pip install .
+conda create -n eosbench python=3.12
+conda activate eosbench
+
+git clone git@github.com:ersilia-os/eosbench.git
+cd eosbench
+pip install -e .
 ```
 
 ---
@@ -203,56 +208,6 @@ train_idx, test_idx = dataset.split[0]
 
 ---
 
-### `mirror_dataset`
-
-Downloads a dataset to a local folder on disk. Useful when you want the raw files rather than a Python object. Mirrors the signature of `load_dataset`.
-
-```python
-from eosbench import mirror_dataset
-
-mirror_dataset("tdcommons", "ames", featurization="morgan")
-mirror_dataset("tdcommons", "ames", featurization="rdkit")  # adds rdkit.npy, skips existing files
-mirror_dataset("tdcommons", "ames", featurization=None, output_dir="my_data")  # no feature matrix
-```
-
-Files already present in the destination are never re-downloaded or overwritten.
-
-**Arguments** are the same as `load_dataset`, plus:
-
-| argument | description |
-|----------|-------------|
-| `output_dir` | root folder to write into (default: `"data"`) |
-
-**Returns** the `Path` to the dataset directory.
-
-The resulting folder layout:
-
-```
-data/
-  tdcommons/
-    classification/
-      ames/
-        data.csv
-        folds.csv
-        morgan.npy      # only if featurization="morgan"
-        rdkit.npy       # only if featurization="rdkit"
-        metadata.json
-```
-
----
-
-### `get_path`
-
-Returns the path where a dataset lives (or would live) within a base directory. Useful for building file paths without hardcoding the folder structure.
-
-```python
-from eosbench import get_path
-
-path = get_path("data", "ames", source="tdcommons", task="classification")
-# Path("data/tdcommons/classification/ames")
-```
----
-
 ## CLI
 
 `eosbench` includes a command-line interface installed alongside the package.
@@ -343,45 +298,43 @@ eosbench fetch --source tdcommons --dataset ames --featurization rdkit --output_
 eosbench fetch --source moleculenet --dataset bbbp --featurization none
 # copy from a locally prepared mirror instead of S3 (e.g. before uploading)
 eosbench fetch --source tdcommons --dataset ames --from_dir data
-
-# batch: every dataset matching --source/--task/--name, in one command
-eosbench fetch --all --task classification --source tdcommons    # every tdcommons classification dataset
-eosbench fetch --all --task classification --name cyp            # every classification dataset with "cyp" in the name
-eosbench fetch --all --task classification                       # every classification dataset, any source
 ```
 
 | argument | default | description |
 |----------|---------|-------------|
 | `--id` | — | eosbench identifier; resolves source/dataset/task automatically (use instead of `--source`/`--dataset`) |
-| `--source` | required* | `tdcommons` or `moleculenet` (*not needed with `--id`; with `--all`, omit to cover every source) |
-| `--dataset` | required* | dataset name, e.g. `ames` (*not needed with `--id`; not usable with `--all`) |
-| `--all` | — | fetch every dataset matching `--source`/`--task`/`--name` instead of a single one |
-| `--name` | `None` | filter by name substring (only with `--all`) |
+| `--source` | required* | `tdcommons` or `moleculenet` (*not needed with `--id`) |
+| `--dataset` | required* | dataset name, e.g. `ames` (*not needed with `--id`) |
 | `--featurization` | `morgan` | `morgan`, `rdkit`, or `none` |
 | `--output_dir` | `.` | root folder to write into |
 | `--task` | `classification` | `classification` or `regression` |
 | `--from_dir` | `None` | copy from a local mirror laid out as `DIR/{source}/{task}/{dataset}/` instead of downloading from S3 |
-
-With `--all`, a dataset that fails to download is logged and skipped rather than aborting the batch; the command exits non-zero if any dataset in the batch failed.
 
 ---
 
 ## Preparing new datasets
 
 New datasets are built with the scripts under `scripts/`. These require extra tooling
-(rdkit, scikit-learn, and per-source packages) that is **not** needed to consume eosbench.
-Each `prepare_*.py` script has its own extra — `prepare-moleculenet`, `prepare-tdcommons`,
-`prepare-polaris` — rather than one shared `prepare` extra, since PyTDC (tdcommons) and
-polaris-lib (Polaris) pull in mutually incompatible AWS SDK versions and can't be installed
-together:
+(rdkit, scikit-learn, a source-specific client) that is **not** needed to consume eosbench.
+Installation is split into **three separate extras**, one per source, rather than one
+combined `[prepare]` extra:
 
 ```bash
-pip install -e ".[prepare-moleculenet]"   # or prepare-tdcommons / prepare-polaris
+pip install -e ".[prepare-moleculenet]"
+pip install -e ".[prepare-tdcommons]"
+pip install -e ".[prepare-polaris]"
 ```
+
+They're split because `PyTDC`'s dependency tree and `polaris-lib` want incompatible versions
+of the AWS SDK (`boto3`) — installing both together in one environment makes pip's resolver
+backtrack into a broken, unrelated `boto3` version. `prepare-tdcommons` also pins
+`rdkit==2023.9.6` and `PyTDC==0.4.17` specifically, not just "latest" — see the comments next
+to that extra in `pyproject.toml` for why those exact versions matter for reproducibility.
 
 To add MoleculeNet datasets:
 
 ```bash
+pip install -e ".[prepare-moleculenet]"
 python scripts/prepare_moleculenet.py                      # default subset
 python scripts/prepare_moleculenet.py --datasets bbbp,tox21
 python scripts/prepare_moleculenet.py --datasets all --n_folds 5 --seed 42
@@ -410,6 +363,7 @@ For each set this writes **one family**:
 To add Polaris datasets (requires a Polaris Hub login):
 
 ```bash
+pip install -e ".[prepare-polaris]"
 polaris login                                              # one-time, cached token
 python scripts/prepare_polaris.py                          # auto-discover all qualifying benchmarks
 python scripts/prepare_polaris.py --datasets polaris/some-benchmark
@@ -428,6 +382,7 @@ added alongside.
 To add TDC (Therapeutics Data Commons) datasets:
 
 ```bash
+pip install -e ".[prepare-tdcommons]"
 python scripts/prepare_tdcommons.py                       # all binary ADMET datasets
 python scripts/prepare_tdcommons.py --datasets ames,herg  # specific datasets
 python scripts/prepare_tdcommons.py --limit 5 --no_baseline
@@ -435,20 +390,41 @@ python scripts/prepare_tdcommons.py --limit 5 --no_baseline
 
 This auto-discovers the single-prediction **ADME**, **Tox** and **HTS** (high-throughput
 screening bioassay) datasets via `PyTDC`, keeps the **binary-classification** ones (regression
-datasets are skipped, each logged), and writes one 1-column family per dataset under the
-**`tdcommons`** source. Sizes range from ~880 molecules to ~340k, giving benchmarks of varied
-scale. Other `single_pred` groups are excluded on purpose (QM/Yields are regression;
-Epitope/Paratope/Develop/CRISPROutcome take protein/sequence inputs, not SMILES). Like Polaris, it honours
-**TDC's own scaffold split** as the holdout (`scaffold_split_method: "tdc-scaffold"`) and adds
-a random K-fold CV. Crucially, leaderboard references are sourced from **Polaris**, not TDC:
-the script reads `scripts/tdcommons_leaderboard.json` (curated from the Polaris-hosted TDC
-ADMET leaderboard, whose values are more reliable than TDC's own) and attaches them where
-available; other datasets stay blank. (`tdcommons` replaces the older `tdc` source.)
+datasets are skipped, each logged), and writes one family per dataset under the
+**`tdcommons`** source. Most are 1-column families; a handful (`tox21`, `toxcast`,
+`herg_central`) are multi-label on TDC — each label is served as a *separate* API call with
+its own molecule subset, so those are aligned by `Drug_ID` into one conserved multi-column
+family instead. Sizes range from ~880 molecules to ~340k, giving benchmarks of varied scale.
+Other `single_pred` groups are excluded on purpose (QM/Yields are regression;
+Epitope/Paratope/Develop/CRISPROutcome take protein/sequence inputs, not SMILES).
+
+Single-label datasets honour **TDC's own scaffold split** as the holdout
+(`scaffold_split_method: "tdc-scaffold"`), generated with a fixed seed (`42`, kept as its own
+constant independent of `--seed`) — verified empirically to reproduce the TDC ADMET Benchmark
+Group's frozen leaderboard test set byte-for-byte (exact `Drug_ID` match) for every one of its
+22 members. Multi-label families have no such split available (no single TDC split covers the
+assembled union) and get eosbench's own computed Murcko scaffold split instead
+(`scaffold_split_method: "murcko"`), like MoleculeNet's multi-column families — with no seed
+at all, since it's fully deterministic given the molecule set. A random K-fold CV is added
+alongside either way.
+
+Leaderboard references are sourced with a clear precedence — **Polaris** (mirroring the TDC
+ADMET Benchmark Group, preferred over TDC's own leaderboard, which can contain errors), then
+a same-assay **MoleculeNet** cross-fill, then a single **literature** reference as a last
+resort. See [Leaderboard references](#leaderboard-references) below.
 
 Files are written to `data/{source}/classification/{family}/` (one multi-column `data.csv`,
 one `folds.csv`, one feature matrix per featurizer) and a copy of `metadata.json` is bundled
 under `src/eosbench/_data/...` so the family shows up in the catalog. The heavy files are
-**not** uploaded automatically — the script prints the `aws s3` command to publish them.
+**not** uploaded automatically — publish them with Ersilia's internal `eosvc` tool, scoped to
+what you just prepared:
+
+```bash
+eosvc upload --path data/{source}/classification/{family}
+```
+
+(avoid a blanket `--path data/` — raw prep caches such as `data/_raw/`/`.tdc_raw_cache/` don't
+belong on the public bucket).
 
 The shared core lives in `scripts/_prepare_common.py` so additional sources can be added
 as `scripts/prepare_<source>.py` that reuse `prepare_family(...)`. Sources that ship their own
@@ -456,14 +432,20 @@ train/test split (like Polaris) pass it via `prepare_family(..., holdout=..., ho
 
 ### Leaderboard references
 
-The `leaderboard_score`/`leaderboard_metric` columns record the best **published** result
-per dataset (distinct from the RandomForest baseline). These come from curated snapshots:
+The `leaderboard_score`/`leaderboard_metric`/`leaderboard_split`/`leaderboard_provider`
+columns record the best **published** result per dataset (distinct from the RandomForest
+baseline). `leaderboard_std` — the reported cross-seed standard deviation, where known — is
+also recorded in `metadata.json` (currently sparse: only `ames`; not a catalog column). These
+come from curated snapshots:
 
 - **MoleculeNet** — `scripts/moleculenet_leaderboard.json`, applied at prep time by
   `prepare_moleculenet.py`.
 - **tdcommons** — `scripts/tdcommons_leaderboard.json`, applied at prep time by
   `prepare_tdcommons.py` (and patchable after the fact with `scripts/patch_leaderboard_metadata.py`).
-  Each entry records a **`provider`** giving its precedence:
+  Each entry records a **`provider`** giving its precedence, and a **`split`** describing what
+  split *that reference's own score* was computed on — for a cross-filled entry (`provider`
+  other than the dataset's own source) this describes a different dataset/split lineage
+  entirely, not the row it's attached to:
   - `polaris` — the **Polaris Hub**'s mirror of the TDC ADMET Benchmark Group (preferred over
     TDC's own leaderboard, which can contain errors); the 13 ADMET classification tasks.
   - `moleculenet` — for datasets that are the *same* as a MoleculeNet benchmark (`hiv`, `clintox`).
@@ -475,7 +457,7 @@ per dataset (distinct from the RandomForest baseline). These come from curated s
 
   Datasets with no clean dataset-specific number stay blank (the Butkiewicz HTS panel is
   reported as logAUC rather than ROC-AUC; SARS-CoV-2, PAMPA, `skin_reaction`,
-  `carcinogens_lagunin` have no comparable AUROC).
+  `carcinogens_lagunin`, and multi-label `tox21` have no comparable published AUROC).
 
 ---
 
