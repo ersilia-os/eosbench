@@ -23,9 +23,8 @@ import argparse
 import json
 from pathlib import Path
 
-import pandas as pd
-
 import _prepare_common as common
+import pandas as pd
 
 SOURCE = "moleculenet"
 TASK = "classification"
@@ -73,43 +72,91 @@ REGISTRY: dict[str, dict] = {
     "toxcast": {"file": "toxcast_data.csv.gz", "smiles_col": "smiles", "columns": None},
     # --- single-column regression families ---
     "esol": {
-        "file": "delaney-processed.csv", "smiles_col": "smiles",
-        "single": "measured log solubility in mols per litre", "task": "regression",
+        "file": "delaney-processed.csv",
+        "smiles_col": "smiles",
+        "single": "measured log solubility in mols per litre",
+        "task": "regression",
     },
     "freesolv": {
-        "file": "SAMPL.csv", "smiles_col": "smiles", "single": "expt", "task": "regression",
+        "file": "SAMPL.csv",
+        "smiles_col": "smiles",
+        "single": "expt",
+        "task": "regression",
     },
     "lipophilicity": {
-        "file": "Lipophilicity.csv", "smiles_col": "smiles", "single": "exp",
+        "file": "Lipophilicity.csv",
+        "smiles_col": "smiles",
+        "single": "exp",
         "task": "regression",
     },
     # --- multi-column regression families (quantum properties) ---
     "qm8": {
-        "file": "qm8.csv", "smiles_col": "smiles", "task": "regression",
+        "file": "qm8.csv",
+        "smiles_col": "smiles",
+        "task": "regression",
         "columns": [
-            "E1-CC2", "E2-CC2", "f1-CC2", "f2-CC2",
-            "E1-PBE0", "E2-PBE0", "f1-PBE0", "f2-PBE0",
-            "E1-CAM", "E2-CAM", "f1-CAM", "f2-CAM",
+            "E1-CC2",
+            "E2-CC2",
+            "f1-CC2",
+            "f2-CC2",
+            "E1-PBE0",
+            "E2-PBE0",
+            "f1-PBE0",
+            "f2-PBE0",
+            "E1-CAM",
+            "E2-CAM",
+            "f1-CAM",
+            "f2-CAM",
         ],
     },
     "qm9": {
-        "file": "qm9.csv", "smiles_col": "smiles", "task": "regression",
+        "file": "qm9.csv",
+        "smiles_col": "smiles",
+        "task": "regression",
         "columns": [
-            "mu", "alpha", "homo", "lumo", "gap", "r2",
-            "zpve", "cv", "u0", "u298", "h298", "g298",
+            "mu",
+            "alpha",
+            "homo",
+            "lumo",
+            "gap",
+            "r2",
+            "zpve",
+            "cv",
+            "u0",
+            "u298",
+            "h298",
+            "g298",
         ],
     },
 }
 
 # Sensible default subset (excludes the very large muv/toxcast/qm9 sweeps).
 DEFAULT_SETS = [
-    "bbbp", "bace", "hiv", "clintox", "tox21", "sider",
-    "esol", "freesolv", "lipophilicity",
+    "bbbp",
+    "bace",
+    "hiv",
+    "clintox",
+    "tox21",
+    "sider",
+    "esol",
+    "freesolv",
+    "lipophilicity",
 ]
 
 
 def download(file: str) -> Path:
-    """Download a raw MoleculeNet CSV from the DeepChem mirror, cached under data/_raw."""
+    """Download a raw MoleculeNet CSV from the DeepChem mirror, cached under data/_raw.
+
+    Parameters
+    ----------
+    file : str
+        CSV filename, relative to the mirror root.
+
+    Returns
+    -------
+    pathlib.Path
+        Local cached path.
+    """
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     dest = RAW_DIR / file
     if dest.exists():
@@ -123,7 +170,22 @@ def download(file: str) -> Path:
 
 
 def label_columns(key: str, df: pd.DataFrame, spec: dict) -> list[str]:
-    """Resolve the label columns for a set (auto-detect when 'columns' is None)."""
+    """Resolve the label columns for a set (auto-detect when 'columns' is None).
+
+    Parameters
+    ----------
+    key : str
+        Dataset key, e.g. "bbbp" (unused directly; kept for caller-side logging symmetry).
+    df : pandas.DataFrame
+        Raw loaded CSV.
+    spec : dict
+        The dataset's entry in ``MOLECULENET_SETS``.
+
+    Returns
+    -------
+    list of str
+        Label column names.
+    """
     if "single" in spec:
         return [spec["single"]]
     if spec.get("columns"):
@@ -139,6 +201,11 @@ def scrape_leaderboard() -> dict:
     moleculenet.org exposes no stable structured endpoint, so this is intentionally
     conservative: any failure returns ``{}`` and the caller falls back to the curated
     JSON. Kept as a hook so it can be fleshed out if/when a parseable source appears.
+
+    Returns
+    -------
+    dict
+        Always ``{}`` today; see the docstring above.
     """
     try:
         import urllib.request
@@ -153,6 +220,12 @@ def scrape_leaderboard() -> dict:
 
 
 def load_leaderboard() -> dict:
+    """Curated leaderboard references, keyed by dataset key, with any scraped values merged in.
+
+    Returns
+    -------
+    dict
+    """
     scraped = scrape_leaderboard()
     with open(LEADERBOARD_JSON) as f:
         curated = {k: v for k, v in json.load(f).items() if not k.startswith("_")}
@@ -168,7 +241,28 @@ def prepare_set(
     seed: int,
     compute_baseline: bool = True,
 ) -> int:
-    """Prepare ONE family (≥1 tasks) from a MoleculeNet set. Returns 1 if written."""
+    """Prepare ONE family (>=1 tasks) from a MoleculeNet set.
+
+    Parameters
+    ----------
+    key : str
+        Dataset key, e.g. "bbbp".
+    spec : dict
+        The dataset's entry in ``MOLECULENET_SETS``.
+    leaderboard : dict
+        Curated leaderboard references, as returned by :func:`load_leaderboard`.
+    n_folds : int
+        Number of random CV folds.
+    seed : int
+        Random seed for the CV folds and the RandomForest baseline.
+    compute_baseline : bool, default True
+        Whether to train the RandomForest baseline.
+
+    Returns
+    -------
+    int
+        1 if the family was written, 0 if skipped.
+    """
     path = download(spec["file"])
     df = pd.read_csv(path)
     smiles_col = spec["smiles_col"]
@@ -209,6 +303,7 @@ def prepare_set(
 
 
 def main() -> None:
+    """Entry point: prepare the requested (or default) MoleculeNet families."""
     parser = argparse.ArgumentParser(
         description="Prepare MoleculeNet datasets for eosbench."
     )

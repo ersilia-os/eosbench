@@ -26,22 +26,36 @@ from __future__ import annotations
 import argparse
 import re
 
-import numpy as np
-
 import _prepare_common as common
+import numpy as np
 
 SOURCE = "polaris"
 TASK = "classification"
 
 
 def slugify(benchmark_id: str) -> str:
-    """Turn an ``owner/benchmark-name`` id into a clean dataset directory name."""
+    """Turn an ``owner/benchmark-name`` id into a clean dataset directory name.
+
+    Parameters
+    ----------
+    benchmark_id : str
+        Benchmark id as ``"owner/slug"``.
+
+    Returns
+    -------
+    str
+    """
     name = benchmark_id.split("/")[-1].lower()
     return re.sub(r"[^a-z0-9]+", "-", name).strip("-")
 
 
 def list_benchmark_ids() -> list[str]:
-    """Return all benchmark ids on the hub as ``owner/slug`` strings (paginated)."""
+    """Return all benchmark ids on the hub as ``owner/slug`` strings (paginated).
+
+    Returns
+    -------
+    list of str
+    """
     from polaris.hub.client import PolarisHubClient
 
     ids: list[str] = []
@@ -89,7 +103,24 @@ def _split_rows(benchmark) -> tuple[list[int], np.ndarray]:
 def prepare_benchmark(
     benchmark_id: str, n_folds: int, seed: int, compute_baseline: bool = True
 ) -> int:
-    """Prepare ONE benchmark. Returns 1 if written, 0 if skipped (reason logged)."""
+    """Prepare ONE benchmark.
+
+    Parameters
+    ----------
+    benchmark_id : str
+        Benchmark id as ``"owner/slug"``, e.g. "tdcommons/ames".
+    n_folds : int
+        Number of random CV folds.
+    seed : int
+        Random seed for the CV folds and the RandomForest baseline.
+    compute_baseline : bool, default True
+        Whether to train the RandomForest baseline.
+
+    Returns
+    -------
+    int
+        1 if written, 0 if skipped (reason logged).
+    """
     import polaris as po
 
     try:
@@ -164,6 +195,7 @@ def prepare_benchmark(
 
 
 def main() -> None:
+    """Entry point: prepare the requested (or auto-discovered) Polaris benchmarks."""
     parser = argparse.ArgumentParser(
         description="Prepare Polaris benchmarks for eosbench."
     )

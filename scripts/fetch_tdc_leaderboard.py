@@ -38,7 +38,7 @@ OVERVIEW_URL = "https://tdcommons.ai/benchmark/admet_group/overview/"
 DATASET_URL = "https://tdcommons.ai/benchmark/admet_group/{slug}/"
 OUT_JSON = Path(__file__).resolve().parent / "tdcommons_leaderboard.json"
 
-_SLUG_RE = re.compile(r'admet_group/([0-9]+[a-z0-9_]*)')
+_SLUG_RE = re.compile(r"admet_group/([0-9]+[a-z0-9_]*)")
 _SUMMARY_RE = re.compile(r"Dataset Summary.*?<table[^>]*>(.*?)</table>", re.S)
 _LEADERBOARD_RE = re.compile(r'<table[^>]*id="A"[^>]*>(.*?)</table>', re.S)
 _ROW_RE = re.compile(r"<tr>(.*?)</tr>", re.S)
@@ -57,7 +57,13 @@ def _get(url: str) -> str:
 
 
 def list_slugs() -> list[str]:
-    """All ADMET Benchmark Group page slugs, e.g. '21ames', from the overview page."""
+    """All ADMET Benchmark Group page slugs, from the overview page.
+
+    Returns
+    -------
+    list of str
+        Page slugs, e.g. ``"21ames"``.
+    """
     html = _get(OVERVIEW_URL)
     seen: list[str] = []
     for slug in _SLUG_RE.findall(html):
@@ -75,8 +81,21 @@ def _first_row_cells(section_html: str) -> list[str]:
 
 
 def fetch_entry(slug: str) -> dict | None:
-    """Fetch one ADMET Benchmark Group page. Returns None for regression tasks or on any
-    parse failure (logged), so a markup change fails loudly rather than writing garbage."""
+    """Fetch one ADMET Benchmark Group page and format its top score as a leaderboard entry.
+
+    Parameters
+    ----------
+    slug : str
+        Page slug, e.g. "21ames".
+
+    Returns
+    -------
+    dict or None
+        A ``tdcommons_leaderboard.json``-shaped entry keyed by the eosbench dataset slug
+        (the caller merges the single-key dict in), or ``None`` for a regression task or
+        any parse failure (logged), so a markup change fails loudly rather than writing
+        garbage.
+    """
     html = _get(DATASET_URL.format(slug=slug))
 
     summary_m = _SUMMARY_RE.search(html)
@@ -135,6 +154,7 @@ def fetch_entry(slug: str) -> dict | None:
 
 
 def main() -> None:
+    """Entry point: fetch, update ``tdcommons_leaderboard.json``, and sync ``metadata.json``."""
     parser = argparse.ArgumentParser(
         description="Fetch top scores from TDC's own ADMET Benchmark Group leaderboard."
     )

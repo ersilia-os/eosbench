@@ -37,7 +37,16 @@ SOURCES = {
     "tdcommons": Path(__file__).resolve().parent / "tdcommons_leaderboard.json",
     "polaris": Path(__file__).resolve().parent / "polaris_leaderboard.json",
 }
-_FIELDS = ("metric", "value", "std", "split", "provider", "source", "fetched_at", "comparable")
+_FIELDS = (
+    "metric",
+    "value",
+    "std",
+    "split",
+    "provider",
+    "source",
+    "fetched_at",
+    "comparable",
+)
 
 
 def _load(json_path: Path) -> dict:
@@ -67,7 +76,15 @@ def _patch(meta_path: Path, fields: dict) -> bool:
 
 def process(source: str, json_path: Path) -> None:
     """Patch every task (classification, regression, ...) this source has bundled data
-    for -- moleculenet's leaderboard JSON covers both, so this must not assume just one."""
+    for -- moleculenet's leaderboard JSON covers both, so this must not assume just one.
+
+    Parameters
+    ----------
+    source : str
+        Dataset source, e.g. "tdcommons".
+    json_path : pathlib.Path
+        Curated leaderboard JSON to read from.
+    """
     leaderboard = _load(json_path)
     source_root = common.PKG_DATA_ROOT / source
     if not source_root.exists():
@@ -76,7 +93,9 @@ def process(source: str, json_path: Path) -> None:
     n_families = n_lb = 0
     for task_dir in sorted(p for p in source_root.iterdir() if p.is_dir()):
         task = task_dir.name
-        families = sorted(p.name for p in task_dir.iterdir() if (p / "metadata.json").exists())
+        families = sorted(
+            p.name for p in task_dir.iterdir() if (p / "metadata.json").exists()
+        )
         for family in families:
             fields = _entry_fields(leaderboard.get(family))
             for root in (common.PKG_DATA_ROOT, common.DATA_ROOT):
@@ -90,6 +109,7 @@ def process(source: str, json_path: Path) -> None:
 
 
 def main() -> None:
+    """Entry point: patch leaderboard fields into metadata.json for the requested sources."""
     parser = argparse.ArgumentParser(
         description="Backfill leaderboard fields into metadata."
     )

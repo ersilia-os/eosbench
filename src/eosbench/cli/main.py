@@ -2,11 +2,13 @@ import argparse
 import sys
 
 from .catalog import main as catalog_main
-from .info import main as info_main
 from .fetch import main as fetch_main
+from .info import main as info_main
 
 
 def main():
+    """Entry point for the ``eosbench`` command: dispatch to the ``catalog``/``info``/
+    ``fetch`` subcommand."""
     parser = argparse.ArgumentParser(
         prog="eosbench",
         description="eosbench — Ersilia benchmark dataset CLI",

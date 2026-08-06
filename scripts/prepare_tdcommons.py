@@ -43,10 +43,9 @@ import json
 import sys
 from pathlib import Path
 
+import _prepare_common as common
 import numpy as np
 import pandas as pd
-
-import _prepare_common as common
 
 SOURCE = "tdcommons"
 TASK = "classification"
@@ -78,13 +77,23 @@ GROUPS = ("ADME", "Tox", "HTS")
 
 
 def load_leaderboard() -> dict:
-    """Polaris-sourced leaderboard references, keyed by dataset slug."""
+    """Curated leaderboard references, keyed by dataset slug.
+
+    Returns
+    -------
+    dict
+    """
     with open(LEADERBOARD_JSON) as f:
         return {k: v for k, v in json.load(f).items() if not k.startswith("_")}
 
 
 def discover() -> list[tuple[str, str]]:
-    """Return ``(group, name)`` for every ADME, Tox and HTS single-pred dataset on TDC."""
+    """Return ``(group, name)`` for every ADME, Tox and HTS single-pred dataset on TDC.
+
+    Returns
+    -------
+    list of tuple of (str, str)
+    """
     from tdc.utils import retrieve_dataset_names
 
     pairs: list[tuple[str, str]] = []
@@ -137,6 +146,28 @@ def prepare_multi_label(
     subset), so this deliberately falls back to `prepare_family`'s own internal Murcko
     scaffold split -- exactly what `prepare_moleculenet.py` already does for all of *its*
     multi-column families (tox21, toxcast, clintox, sider, muv).
+
+    Parameters
+    ----------
+    group : str
+        TDC single_pred group, e.g. "Tox".
+    name : str
+        TDC dataset name, e.g. "tox21".
+    labels : list of str
+        Label names to fetch and align.
+    leaderboard : dict
+        Curated leaderboard references, as returned by :func:`load_leaderboard`.
+    n_folds : int
+        Number of random CV folds.
+    seed : int
+        Random seed for the CV folds and the RandomForest baseline.
+    compute_baseline : bool, default True
+        Whether to train the RandomForest baseline.
+
+    Returns
+    -------
+    int
+        1 if the family was written, 0 if skipped.
     """
     cls = _group_class(group)
     drug_map: dict[str, str] = {}
@@ -153,7 +184,9 @@ def prepare_multi_label(
             continue
         coerced = common.coerce_binary(df["Y"])
         if coerced is None:
-            print(f"  [{name}/{label}] skipped: not binary classification (likely regression)")
+            print(
+                f"  [{name}/{label}] skipped: not binary classification (likely regression)"
+            )
             continue
         for drug_id, drug in zip(df["Drug_ID"], df["Drug"]):
             drug_map.setdefault(drug_id, drug)
@@ -166,7 +199,10 @@ def prepare_multi_label(
     drug_ids = sorted(drug_map)  # deterministic order
     smiles = [drug_map[d] for d in drug_ids]
     label_df = pd.DataFrame(
-        {label: [series.get(d) for d in drug_ids] for label, series in label_series.items()}
+        {
+            label: [series.get(d) for d in drug_ids]
+            for label, series in label_series.items()
+        }
     )
 
     common.prepare_family(
@@ -191,7 +227,28 @@ def prepare_one(
     seed: int,
     compute_baseline: bool = True,
 ) -> int:
-    """Prepare ONE dataset. Returns 1 if written, 0 if skipped (reason logged)."""
+    """Prepare ONE dataset.
+
+    Parameters
+    ----------
+    group : str
+        TDC single_pred group, e.g. "Tox".
+    name : str
+        TDC dataset name, e.g. "ames".
+    leaderboard : dict
+        Curated leaderboard references, as returned by :func:`load_leaderboard`.
+    n_folds : int
+        Number of random CV folds.
+    seed : int
+        Random seed for the CV folds and the RandomForest baseline.
+    compute_baseline : bool, default True
+        Whether to train the RandomForest baseline.
+
+    Returns
+    -------
+    int
+        1 if written, 0 if skipped (reason logged).
+    """
     labels = _label_names(name)
     if labels is not None:
         return prepare_multi_label(
@@ -225,7 +282,10 @@ def prepare_one(
     # warn-and-continue: this would invalidate leaderboard comparability, not just this
     # one dataset's numbers.
     lb_entry = leaderboard.get(name, {})
-    if lb_entry.get("provider") == "polaris" and lb_entry.get("split") not in (None, "scaffold"):
+    if lb_entry.get("provider") == "polaris" and lb_entry.get("split") not in (
+        None,
+        "scaffold",
+    ):
         sys.exit(
             f"[{name}] leaderboard split is {lb_entry['split']!r} (provider=polaris), but "
             "prepare_one() always computes a scaffold holdout -- scaffold_auroc would not "
@@ -261,6 +321,7 @@ def prepare_one(
 
 
 def main() -> None:
+    """Entry point: prepare the requested (or all discovered) TDC ADMET datasets."""
     parser = argparse.ArgumentParser(
         description="Prepare TDC ADMET classification datasets for eosbench."
     )

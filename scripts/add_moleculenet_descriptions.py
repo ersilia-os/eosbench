@@ -45,6 +45,13 @@ def _update_one(path, descriptions: dict[str, dict]) -> None:
 
 
 def process(family: str) -> None:
+    """Inject column descriptions into one MoleculeNet family's metadata.json (both copies).
+
+    Parameters
+    ----------
+    family : str
+        MoleculeNet family name, e.g. "tox21".
+    """
     pkg = common.PKG_DATA_ROOT / SOURCE / TASK / family / "metadata.json"
     with open(pkg) as f:
         columns = list(json.load(f).get("columns", {}))
@@ -60,6 +67,7 @@ def process(family: str) -> None:
 
 
 def main() -> None:
+    """Entry point: inject descriptions into the requested (or all) MoleculeNet families."""
     parser = argparse.ArgumentParser(
         description="Add per-column descriptions to MoleculeNet metadata."
     )

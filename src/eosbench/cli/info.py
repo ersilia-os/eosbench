@@ -5,6 +5,7 @@ from rich.table import Table
 
 from ..dataset import DatasetInfo, resolve_id
 
+
 # Shown under the metric tables. Mirrors the wording in `eosbench catalog --help`.
 def _baseline_note(task: str) -> str:
     metrics = "rmse/r2" if task == "regression" else "auroc/auprc"
@@ -15,7 +16,13 @@ def _baseline_note(task: str) -> str:
     )
 
 
-def main():
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the ``eosbench info`` argument parser.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
     parser = argparse.ArgumentParser(
         description="Show metadata for a single eosbench dataset."
     )
@@ -33,7 +40,10 @@ def main():
         help="Dataset source, e.g. tdcommons or moleculenet (not needed with --id).",
     )
     parser.add_argument(
-        "--dataset", type=str, default=None, help="Dataset name, e.g. ames (not needed with --id)."
+        "--dataset",
+        type=str,
+        default=None,
+        help="Dataset name, e.g. ames (not needed with --id).",
     )
     parser.add_argument(
         "--task",
@@ -47,107 +57,106 @@ def main():
         default=None,
         help="For a multi-column family, show full details for one label column (untruncated).",
     )
-    args = parser.parse_args()
+    return parser
 
+
+def _resolve_args(parser, args) -> None:
+    """Resolve ``--id`` into ``source``/``dataset``/``task``/``column`` in place, or
+    validate that ``--source``/``--dataset`` were given directly."""
     if args.id is not None:
         try:
             hit = resolve_id(args.id)
         except KeyError as e:
             parser.error(str(e))
-        args.source, args.dataset, args.task = hit["source"], hit["dataset"], hit["task"]
+        args.source, args.dataset, args.task = (
+            hit["source"],
+            hit["dataset"],
+            hit["task"],
+        )
         if args.column is None:
             args.column = hit["column"]
     elif not (args.source and args.dataset):
         parser.error("provide --id, or both --source and --dataset.")
 
-    info = DatasetInfo(source=args.source, task=args.task, dataset=args.dataset)
-    meta = info.metadata
-    task = meta.get("task", args.task)
-    console = Console()
 
-    if args.column is not None:
-        columns = meta.get("columns")
-        if not columns:
-            parser.error(
-                f"{args.dataset!r} is a single-column dataset; omit --column "
-                f"(its full details are shown by `eosbench info` without --column)."
-            )
-        if args.column not in columns:
-            parser.error(
-                f"unknown column {args.column!r} for {args.source}/{args.dataset}. "
-                f"Available: {', '.join(columns)}"
-            )
-        _print_column_detail(
-            console, args.source, args.dataset, args.column, columns[args.column], task
+def _print_multi_column(console, args, info, meta: dict, task: str) -> None:
+    """Family format: a summary table plus a per-column overview table."""
+    summary = Table(title=f"{args.source}/{args.dataset}", show_header=False)
+    summary.add_column("field", style="bold cyan")
+    summary.add_column("value")
+    summary.add_row("id", info.id)
+    summary.add_row("source", str(meta.get("source", "-")))
+    summary.add_row("dataset", str(meta.get("dataset", "-")))
+    summary.add_row("task", args.task)
+    summary.add_row("n_molecules", str(meta.get("n_molecules", "-")))
+    summary.add_row("n_columns", str(len(meta["columns"])))
+    for field, value in _leaderboard_rows(meta):
+        summary.add_row(field, value)
+    summary.add_row("last_updated", str(meta.get("last_updated", "-")))
+    console.print(summary)
+
+    per_column = Table(title="columns")
+    if task == "regression":
+        headers = (
+            "id",
+            "column",
+            "n",
+            "rmse (random split)",
+            "r2 (random split)",
+            "rmse (scaffold split)",
+            "description",
         )
-        console.print(_baseline_note(task))
-        return
-
-    if meta.get("columns"):  # family format: summary + per-column table
-        summary = Table(title=f"{args.source}/{args.dataset}", show_header=False)
-        summary.add_column("field", style="bold cyan")
-        summary.add_column("value")
-        summary.add_row("id", info.id)
-        summary.add_row("source", str(meta.get("source", "-")))
-        summary.add_row("dataset", str(meta.get("dataset", "-")))
-        summary.add_row("task", args.task)
-        summary.add_row("n_molecules", str(meta.get("n_molecules", "-")))
-        summary.add_row("n_columns", str(len(meta["columns"])))
-        for field, value in _leaderboard_rows(meta):
-            summary.add_row(field, value)
-        summary.add_row("last_updated", str(meta.get("last_updated", "-")))
-        console.print(summary)
-
-        per_column = Table(title="columns")
+    else:
+        headers = (
+            "id",
+            "column",
+            "n",
+            "pos",
+            "neg",
+            "auroc (random split)",
+            "auprc (random split)",
+            "auroc (scaffold split)",
+            "description",
+        )
+    for col in headers:
+        per_column.add_column(col)
+    for name, c in meta["columns"].items():
         if task == "regression":
-            headers = (
-                "id", "column", "n",
-                "rmse (random split)", "r2 (random split)",
-                "rmse (scaffold split)", "description",
+            per_column.add_row(
+                info.column_id(name),
+                name,
+                str(c.get("n_samples", "-")),
+                _pm(c.get("random_rmse_mean"), c.get("random_rmse_std")),
+                _pm(c.get("random_r2_mean"), c.get("random_r2_std")),
+                f"{c['scaffold_rmse']:.4f}"
+                if c.get("scaffold_rmse") is not None
+                else "-",
+                _truncate(c.get("description"), 70),
             )
         else:
-            headers = (
-                "id", "column", "n", "pos", "neg",
-                "auroc (random split)", "auprc (random split)",
-                "auroc (scaffold split)", "description",
+            per_column.add_row(
+                info.column_id(name),
+                name,
+                str(c.get("n_samples", "-")),
+                str(c.get("n_positives", "-")),
+                str(c.get("n_negatives", "-")),
+                _pm(c.get("random_auroc_mean"), c.get("random_auroc_std")),
+                _pm(c.get("random_aupr_mean"), c.get("random_aupr_std")),
+                f"{c['scaffold_auroc']:.4f}"
+                if c.get("scaffold_auroc") is not None
+                else "-",
+                _truncate(c.get("description"), 70),
             )
-        for col in headers:
-            per_column.add_column(col)
-        for name, c in meta["columns"].items():
-            if task == "regression":
-                per_column.add_row(
-                    info.column_id(name),
-                    name,
-                    str(c.get("n_samples", "-")),
-                    _pm(c.get("random_rmse_mean"), c.get("random_rmse_std")),
-                    _pm(c.get("random_r2_mean"), c.get("random_r2_std")),
-                    f"{c['scaffold_rmse']:.4f}"
-                    if c.get("scaffold_rmse") is not None
-                    else "-",
-                    _truncate(c.get("description"), 70),
-                )
-            else:
-                per_column.add_row(
-                    info.column_id(name),
-                    name,
-                    str(c.get("n_samples", "-")),
-                    str(c.get("n_positives", "-")),
-                    str(c.get("n_negatives", "-")),
-                    _pm(c.get("random_auroc_mean"), c.get("random_auroc_std")),
-                    _pm(c.get("random_aupr_mean"), c.get("random_aupr_std")),
-                    f"{c['scaffold_auroc']:.4f}"
-                    if c.get("scaffold_auroc") is not None
-                    else "-",
-                    _truncate(c.get("description"), 70),
-                )
-        console.print(per_column)
-        console.print(
-            f"[dim]descriptions truncated; run `eosbench info --source {args.source} "
-            f"--dataset {args.dataset} --column <name>` for one column's full details.[/dim]"
-        )
-        console.print(_baseline_note(task))
-        return
+    console.print(per_column)
+    console.print(
+        f"[dim]descriptions truncated; run `eosbench info --source {args.source} "
+        f"--dataset {args.dataset} --column <name>` for one column's full details.[/dim]"
+    )
+    console.print(_baseline_note(task))
 
+
+def _print_single_column(console, args, info, meta: dict, task: str) -> None:
+    """Legacy single-task format: one vertical table for the whole dataset."""
     table = Table(title=f"{args.source}/{args.dataset}", show_header=False)
     table.add_column("field", style="bold cyan")
     table.add_column("value")
@@ -177,6 +186,39 @@ def main():
 
     console.print(table)
     console.print(_baseline_note(task))
+
+
+def main():
+    """Entry point for ``eosbench info``: parse args and print one dataset's metadata."""
+    parser = _build_parser()
+    args = parser.parse_args()
+    _resolve_args(parser, args)
+
+    info = DatasetInfo(source=args.source, task=args.task, dataset=args.dataset)
+    meta = info.metadata
+    task = meta.get("task", args.task)
+    console = Console()
+
+    if args.column is not None:
+        columns = meta.get("columns")
+        if not columns:
+            parser.error(
+                f"{args.dataset!r} is a single-column dataset; omit --column "
+                f"(its full details are shown by `eosbench info` without --column)."
+            )
+        if args.column not in columns:
+            parser.error(
+                f"unknown column {args.column!r} for {args.source}/{args.dataset}. "
+                f"Available: {', '.join(columns)}"
+            )
+        _print_column_detail(
+            console, args.source, args.dataset, args.column, columns[args.column], task
+        )
+        console.print(_baseline_note(task))
+    elif meta.get("columns"):
+        _print_multi_column(console, args, info, meta, task)
+    else:
+        _print_single_column(console, args, info, meta, task)
 
 
 def _truncate(text, width: int) -> str:
@@ -277,7 +319,10 @@ def _column_detail_rows(c: dict, task: str = "classification") -> list[tuple[str
     if task == "regression":
         rows: list[tuple[str, str]] = [("n_samples", _count(c.get("n_samples")))]
         rows += [
-            ("rmse (random split)", _pm(c.get("random_rmse_mean"), c.get("random_rmse_std"))),
+            (
+                "rmse (random split)",
+                _pm(c.get("random_rmse_mean"), c.get("random_rmse_std")),
+            ),
             ("r2 (random split)", _pm(c.get("random_r2_mean"), c.get("random_r2_std"))),
         ]
         if c.get("scaffold_rmse") is not None:
@@ -317,7 +362,12 @@ def _column_detail_rows(c: dict, task: str = "classification") -> list[tuple[str
 
 
 def _print_column_detail(
-    console, source: str, dataset: str, column: str, c: dict, task: str = "classification"
+    console,
+    source: str,
+    dataset: str,
+    column: str,
+    c: dict,
+    task: str = "classification",
 ) -> None:
     """Vertical, untruncated detail table for one label column of a family."""
     table = Table(title=f"{source}/{dataset} — {column}", show_header=False)

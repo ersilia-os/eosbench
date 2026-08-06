@@ -15,9 +15,8 @@ from __future__ import annotations
 import zipfile
 from pathlib import Path
 
-import pandas as pd
-
 import _prepare_common as common
+import pandas as pd
 
 # EPA invitroDB v3.3 assay annotation (the methods table carries the endpoint -> target map).
 TOXCAST_ASSAY_INFO_URL = (
@@ -235,17 +234,18 @@ def _download_toxcast_zip() -> Path:
 def _toxcast_oneliner(row) -> str:
     """Compose a concise endpoint description from invitroDB structured fields."""
 
-    def s(v):
+    def _clean(v):
+        """Stringify and strip a field, or ``None`` for missing/blank values."""
         return str(v).strip() if pd.notna(v) and str(v).strip() else None
 
-    family = s(row.get("intended_target_family"))
-    sub = s(row.get("intended_target_family_sub"))
-    bio = s(row.get("biological_process_target"))
+    family = _clean(row.get("intended_target_family"))
+    sub = _clean(row.get("intended_target_family_sub"))
+    bio = _clean(row.get("biological_process_target"))
     signal = {"gain": "increased", "loss": "decreased"}.get(
-        s(row.get("signal_direction")) or "", s(row.get("signal_direction"))
+        _clean(row.get("signal_direction")) or "", _clean(row.get("signal_direction"))
     )
-    organism = s(row.get("organism"))
-    tissue = s(row.get("tissue"))
+    organism = _clean(row.get("organism"))
+    tissue = _clean(row.get("tissue"))
     timepoint = row.get("timepoint_hr")
 
     head = family.capitalize() if family else "Assay endpoint"
@@ -285,7 +285,20 @@ def _toxcast_map() -> dict[str, str]:
 
 
 def describe_columns(family: str, columns: list[str]) -> dict[str, dict]:
-    """Return ``{column: {"description": str|None, "description_source": str}}``."""
+    """Look up or compose a one-line scientific description per label column.
+
+    Parameters
+    ----------
+    family : str
+        MoleculeNet family name, e.g. "tox21".
+    columns : list of str
+        Label column (endpoint) names to describe.
+
+    Returns
+    -------
+    dict
+        ``{column: {"description": str or None, "description_source": str}}``.
+    """
     out: dict[str, dict] = {}
 
     if family in CURATED:

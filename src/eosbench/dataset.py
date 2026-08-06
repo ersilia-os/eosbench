@@ -1,8 +1,8 @@
-from collections.abc import Iterator
 import hashlib
-import shutil
 import json
 import os
+import shutil
+from collections.abc import Iterator
 from importlib import resources
 from pathlib import Path
 from urllib.error import URLError
@@ -52,13 +52,30 @@ def _head_ok(url: str, timeout: float = 15.0) -> bool:
         return False
 
 
-def check_availability(source: str, task: str, dataset: str, timeout: float = 15.0) -> bool:
+def check_availability(
+    source: str, task: str, dataset: str, timeout: float = 15.0
+) -> bool:
     """True if this dataset family is present on the public S3 bucket right now.
 
     Performs a live network HEAD request against the family's ``data.csv`` — the same
     check the catalog website (``eosbench catalog`` docs, ``site/index.html``) runs. This
     is a network call: use it sparingly (e.g. behind an opt-in CLI flag), not on every
     catalog load.
+
+    Parameters
+    ----------
+    source : str
+        Dataset source, e.g. "tdcommons".
+    task : str
+        "classification" or "regression".
+    dataset : str
+        Family name, e.g. "ames".
+    timeout : float, default 15.0
+        HEAD request timeout, in seconds.
+
+    Returns
+    -------
+    bool
     """
     url = f"{S3_BASE}/{source}/{task}/{dataset}/data.csv"
     return _head_ok(url, timeout=timeout)
@@ -111,7 +128,7 @@ def _copy_from_dir(
     src = Path(from_dir) / source / task / dataset / filename
     if not src.exists():
         raise FileNotFoundError(
-            f"{filename} not found for {source}/{task}/{dataset} under --from_dir: {src}"
+            f"{filename} not found for {source}/{task}/{dataset} under --from-dir: {src}"
         )
     shutil.copy2(src, dest)
     logger.info(f"Copied {filename} from {src}")
@@ -162,17 +179,38 @@ class Splits:
 
     @classmethod
     def from_folds(cls, folds: np.ndarray) -> "Splits":
-        """Build leave-one-fold-out CV splits from an integer fold array."""
+        """Build leave-one-fold-out CV splits from an integer fold array.
+
+        Parameters
+        ----------
+        folds : numpy.ndarray
+            Per-sample fold index.
+
+        Returns
+        -------
+        Splits
+        """
         unique = sorted(set(folds.tolist()))
         return cls([(np.where(folds != k)[0], np.where(folds == k)[0]) for k in unique])
 
     @classmethod
     def from_holdout(cls, labels: np.ndarray) -> "Splits":
-        """Build a single train/test split from per-sample ``"train"``/``"test"`` labels."""
+        """Build a single train/test split from per-sample ``"train"``/``"test"`` labels.
+
+        Parameters
+        ----------
+        labels : numpy.ndarray
+            Per-sample ``"train"``/``"test"`` labels.
+
+        Returns
+        -------
+        Splits
+        """
         labels = np.asarray(labels)
         return cls([(np.where(labels == "train")[0], np.where(labels == "test")[0])])
 
     def __call__(self):
+        """Iterate over ``(train_idxs, test_idxs)`` pairs, one per fold (or one, for a holdout)."""
         return iter(self._splits)
 
     def __getitem__(self, i):
@@ -235,16 +273,37 @@ class DatasetInfo:
 
     @property
     def id(self) -> str:
-        """Deterministic short eosbench identifier for this dataset family."""
+        """Deterministic short eosbench identifier for this dataset family.
+
+        Returns
+        -------
+        str
+        """
         return make_id(self.source, self.dataset)
 
     def column_id(self, column: str) -> str:
-        """Deterministic short eosbench identifier for one label column."""
+        """Deterministic short eosbench identifier for one label column.
+
+        Parameters
+        ----------
+        column : str
+            Label column (endpoint) name.
+
+        Returns
+        -------
+        str
+        """
         return make_id(self.source, self.dataset, column)
 
     @property
     def columns(self) -> list[str]:
-        """Label-column (endpoint) names. A single-element list for single-task datasets."""
+        """Label-column (endpoint) names.
+
+        Returns
+        -------
+        list of str
+            A single-element list for single-task datasets.
+        """
         columns = self.metadata.get("columns")
         return list(columns) if columns else [self.dataset]
 
@@ -270,6 +329,10 @@ class DatasetInfo:
             "random" (K-fold CV) or "scaffold" (fixed train/test holdout).
         column : str or None
             For multi-column families, which label column to load (see :func:`load_dataset`).
+
+        Returns
+        -------
+        Dataset
         """
         return load_dataset(
             self.source,
@@ -418,7 +481,12 @@ def load_dataset(
 
 
 def list_sources() -> list[str]:
-    """Return the available dataset sources by scanning bundled ``_data``."""
+    """Return the available dataset sources by scanning bundled ``_data``.
+
+    Returns
+    -------
+    list of str
+    """
     base = resources.files("eosbench") / "_data"
     try:
         return sorted(entry.name for entry in base.iterdir() if entry.is_dir())
@@ -508,7 +576,19 @@ def get_path(
 def list_columns(source: str, dataset: str, task: str = "classification") -> list[str]:
     """Return the label-column (endpoint) names of a dataset family.
 
-    A single-element list (the dataset name) for single-task datasets.
+    Parameters
+    ----------
+    source : str
+        Dataset source, e.g. "tdcommons".
+    dataset : str
+        Family name, e.g. "ames".
+    task : str, default "classification"
+        "classification" or "regression".
+
+    Returns
+    -------
+    list of str
+        A single-element list (the dataset name) for single-task datasets.
     """
     return DatasetInfo(source, task, dataset).columns
 
@@ -563,6 +643,19 @@ def make_id(source: str, dataset: str, column: str | None = None) -> str:
     endpoint), so it is reproducible across regenerations and needs no registry. Family:
     ``make_id("tdcommons", "ames") -> "a3f9c2b1"``; column:
     ``make_id("moleculenet", "tox21", "NR-AR")`` gives a different code.
+
+    Parameters
+    ----------
+    source : str
+        Dataset source, e.g. "tdcommons".
+    dataset : str
+        Family name, e.g. "ames".
+    column : str or None
+        Label column (endpoint) name, or ``None`` for the family id.
+
+    Returns
+    -------
+    str
     """
     key = f"{source}/{dataset}" + (f"/{column}" if column is not None else "")
     return hashlib.sha1(key.encode()).hexdigest()[:8]
@@ -572,18 +665,44 @@ def resolve_id(identifier: str) -> dict:
     """Resolve an eosbench id back to its dataset (and column, if it's a column id).
 
     Scans the bundled catalog for a family or label-column whose :func:`make_id` matches.
-    Returns ``{"source", "dataset", "task", "column"}`` (``column`` is None for a family id).
-    Raises ``KeyError`` if no dataset has that id.
+
+    Parameters
+    ----------
+    identifier : str
+        An eosbench id, as returned by :func:`make_id`.
+
+    Returns
+    -------
+    dict
+        ``{"source", "dataset", "task", "column"}`` (``column`` is ``None`` for a family id).
+
+    Raises
+    ------
+    KeyError
+        If no dataset has that id.
     """
     for source in list_sources():
         for task in ("classification", "regression"):
             for info in iter_datasets(source, task):
-                if info.id == identifier:
-                    return {"source": source, "dataset": info.dataset, "task": task, "column": None}
-                for col in info.columns:
-                    if info.column_id(col) == identifier:
-                        return {"source": source, "dataset": info.dataset, "task": task, "column": col}
+                hit = _match_id(info, source, task, identifier)
+                if hit is not None:
+                    return hit
     raise KeyError(f"no eosbench dataset or column has id {identifier!r}")
+
+
+def _match_id(info, source: str, task: str, identifier: str) -> dict | None:
+    """Check one family (and its columns) for a matching id; ``None`` if none match."""
+    if info.id == identifier:
+        return {"source": source, "dataset": info.dataset, "task": task, "column": None}
+    for col in info.columns:
+        if info.column_id(col) == identifier:
+            return {
+                "source": source,
+                "dataset": info.dataset,
+                "task": task,
+                "column": col,
+            }
+    return None
 
 
 def catalog_columns(task: str = "classification", expand: bool = False) -> list[str]:
@@ -591,16 +710,52 @@ def catalog_columns(task: str = "classification", expand: bool = False) -> list[
 
     ``task="all"`` returns the union of the classification and regression columns (both
     metric sets, plus the class-balance columns), so a combined catalog renders uniformly.
+
+    Parameters
+    ----------
+    task : str, default "classification"
+        "classification", "regression", or "all".
+    expand : bool, default False
+        Whether the frame has one row per label column (``"column"``) rather than per
+        family (``"n_columns"``).
+
+    Returns
+    -------
+    list of str
     """
     if task == "all":
         return [
-            "id", "name", "source", "task", "column" if expand else "n_columns", "n_tot",
-            "size", "n_pos", "auroc", "auprc", "ratio", "rmse", "r2", "skew",
-            "leaderboard_score", "leaderboard_metric", "leaderboard_split",
-            "leaderboard_provider", "leaderboard_comparable", "last_updated",
+            "id",
+            "name",
+            "source",
+            "task",
+            "column" if expand else "n_columns",
+            "n_tot",
+            "size",
+            "n_pos",
+            "auroc",
+            "auprc",
+            "ratio",
+            "rmse",
+            "r2",
+            "skew",
+            "leaderboard_score",
+            "leaderboard_metric",
+            "leaderboard_split",
+            "leaderboard_provider",
+            "leaderboard_comparable",
+            "last_updated",
         ]
     spec = _task_metric_spec(task)
-    cols = ["id", "name", "source", "task", "column" if expand else "n_columns", "n_tot", "size"]
+    cols = [
+        "id",
+        "name",
+        "source",
+        "task",
+        "column" if expand else "n_columns",
+        "n_tot",
+        "size",
+    ]
     if spec["show_class_balance"]:
         cols.append("n_pos")
     cols += [m[0] for m in spec["metrics"]]
@@ -610,8 +765,11 @@ def catalog_columns(task: str = "classification", expand: bool = False) -> list[
         cols.append("skew")
     # Published-leaderboard reference (best reported model), where known.
     cols += [
-        "leaderboard_score", "leaderboard_metric", "leaderboard_split",
-        "leaderboard_provider", "leaderboard_comparable",
+        "leaderboard_score",
+        "leaderboard_metric",
+        "leaderboard_split",
+        "leaderboard_provider",
+        "leaderboard_comparable",
     ]
     cols.append("last_updated")
     return cols
@@ -655,6 +813,20 @@ def get_catalog(
 
     ``task="all"`` returns both tasks in one frame with the union of columns (metrics that
     don't apply to a row are NaN).
+
+    Parameters
+    ----------
+    source : str or None
+        Restrict to one dataset source, e.g. "tdcommons". ``None`` for all sources.
+    task : str, default "classification"
+        "classification", "regression", or "all".
+    expand : bool, default False
+        One row per label column instead of one row per family.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Columns as described above; see :func:`catalog_columns` for the exact list.
     """
     if task == "all":
         frames = [
@@ -666,7 +838,11 @@ def get_catalog(
         if combined.empty:
             return pd.DataFrame(columns=cols)
         combined = combined.reindex(columns=cols)
-        sort_keys = ["task", "source", "name", "column"] if expand else ["task", "source", "name"]
+        sort_keys = (
+            ["task", "source", "name", "column"]
+            if expand
+            else ["task", "source", "name"]
+        )
         return combined.sort_values(sort_keys).reset_index(drop=True)
 
     spec = _task_metric_spec(task)
@@ -678,86 +854,107 @@ def get_catalog(
     sources = list_sources() if source is None else [source]
     for src in sources:
         for info in iter_datasets(src, task):
-            meta = info.metadata
-            columns = meta.get("columns")
-            last_updated = meta.get("last_updated")
-
             if expand:
-                # family columns, or a single synthetic column for legacy datasets.
-                items = columns.items() if columns else [(info.dataset, meta)]
-                for name, c in items:
-                    n_tot, n_pos = c.get("n_samples"), c.get("n_positives")
-                    row = {
-                        "id": make_id(src, info.dataset, name),
-                        "name": info.dataset,
-                        "source": src,
-                        "task": task,
-                        "column": name,
-                        "n_tot": n_tot,
-                        "size": meta.get("size_bytes"),
-                        "leaderboard_score": c.get("leaderboard_value"),
-                        "leaderboard_metric": c.get("leaderboard_metric"),
-                        "leaderboard_split": c.get("leaderboard_split"),
-                        "leaderboard_provider": c.get("leaderboard_provider"),
-                        "leaderboard_comparable": c.get("leaderboard_comparable"),
-                        "last_updated": last_updated,
-                    }
-                    for disp, collapsed_key, percol_key in metrics:
-                        row[disp] = c.get(percol_key, c.get(collapsed_key))
-                    if balance:
-                        row["n_pos"] = n_pos
-                        row["ratio"] = _ratio(n_tot, n_pos)
-                    else:
-                        row["skew"] = c.get("skewness")
-                    rows.append(row)
-                continue
-
-            # collapsed: one row per family. For families, n_tot/n_pos/ratio summarize the
-            # per-column values by their median (these are hidden in the collapsed view, so
-            # the median is the single most representative value); single-column families
-            # trivially reduce to their one column, and legacy datasets use their own counts.
-            if columns:
-                vals = columns.values()
-                n_tot = _median_int(c.get("n_samples") for c in vals)
-                n_pos = _median_int(c.get("n_positives") for c in vals)
-                ratio = _median_float(
-                    _ratio(c.get("n_samples"), c.get("n_positives")) for c in vals
-                )
+                rows.extend(_expand_rows(src, task, info, metrics, balance))
             else:
-                n_tot = meta.get("n_samples")
-                n_pos = meta.get("n_positives")
-                ratio = _ratio(n_tot, n_pos)
-            row = {
-                "id": make_id(src, info.dataset),
-                "name": info.dataset,
-                "source": src,
-                "task": task,
-                "n_columns": len(info.columns),
-                "n_tot": n_tot,
-                "size": meta.get("size_bytes"),
-                "leaderboard_score": meta.get("leaderboard_value"),
-                "leaderboard_metric": meta.get("leaderboard_metric"),
-                "leaderboard_split": meta.get("leaderboard_split"),
-                "leaderboard_provider": meta.get("leaderboard_provider"),
-                "leaderboard_comparable": meta.get("leaderboard_comparable"),
-                "last_updated": last_updated,
-            }
-            for disp, collapsed_key, _percol_key in metrics:
-                row[disp] = meta.get(collapsed_key)
-            if balance:
-                row["n_pos"] = n_pos
-                row["ratio"] = ratio
-            else:
-                row["skew"] = (
-                    _median_float(c.get("skewness") for c in columns.values())
-                    if columns else meta.get("skewness")
-                )
-            rows.append(row)
+                rows.append(_collapsed_row(src, task, info, metrics, balance))
 
     if not rows:
         return pd.DataFrame(columns=cols)
-    sort_keys = ["task", "source", "name", "column"] if expand else ["task", "source", "name"]
+    sort_keys = (
+        ["task", "source", "name", "column"] if expand else ["task", "source", "name"]
+    )
     return pd.DataFrame(rows)[cols].sort_values(sort_keys).reset_index(drop=True)
+
+
+def _expand_rows(
+    src: str, task: str, info: "DatasetInfo", metrics, balance: bool
+) -> list[dict]:
+    """One ``get_catalog(expand=True)`` row per label column of ``info``."""
+    meta = info.metadata
+    columns = meta.get("columns")
+    last_updated = meta.get("last_updated")
+    # family columns, or a single synthetic column for legacy datasets.
+    items = columns.items() if columns else [(info.dataset, meta)]
+
+    rows = []
+    for name, c in items:
+        n_tot, n_pos = c.get("n_samples"), c.get("n_positives")
+        row = {
+            "id": make_id(src, info.dataset, name),
+            "name": info.dataset,
+            "source": src,
+            "task": task,
+            "column": name,
+            "n_tot": n_tot,
+            "size": meta.get("size_bytes"),
+            "leaderboard_score": c.get("leaderboard_value"),
+            "leaderboard_metric": c.get("leaderboard_metric"),
+            "leaderboard_split": c.get("leaderboard_split"),
+            "leaderboard_provider": c.get("leaderboard_provider"),
+            "leaderboard_comparable": c.get("leaderboard_comparable"),
+            "last_updated": last_updated,
+        }
+        for disp, collapsed_key, percol_key in metrics:
+            row[disp] = c.get(percol_key, c.get(collapsed_key))
+        if balance:
+            row["n_pos"] = n_pos
+            row["ratio"] = _ratio(n_tot, n_pos)
+        else:
+            row["skew"] = c.get("skewness")
+        rows.append(row)
+    return rows
+
+
+def _collapsed_row(
+    src: str, task: str, info: "DatasetInfo", metrics, balance: bool
+) -> dict:
+    """One ``get_catalog()`` row summarizing the whole family ``info``.
+
+    For multi-column families, ``n_tot``/``n_pos``/``ratio``/``skew`` summarize the
+    per-column values by their median (hidden in the collapsed view, so the median is
+    the single most representative value); single-column families trivially reduce to
+    their one column, and legacy datasets use their own top-level counts.
+    """
+    meta = info.metadata
+    columns = meta.get("columns")
+    if columns:
+        vals = columns.values()
+        n_tot = _median_int(c.get("n_samples") for c in vals)
+        n_pos = _median_int(c.get("n_positives") for c in vals)
+        ratio = _median_float(
+            _ratio(c.get("n_samples"), c.get("n_positives")) for c in vals
+        )
+        skew = _median_float(c.get("skewness") for c in vals)
+    else:
+        n_tot = meta.get("n_samples")
+        n_pos = meta.get("n_positives")
+        ratio = _ratio(n_tot, n_pos)
+        skew = meta.get("skewness")
+
+    row = {
+        "id": make_id(src, info.dataset),
+        "name": info.dataset,
+        "source": src,
+        "task": task,
+        "n_columns": len(info.columns),
+        "n_tot": n_tot,
+        "size": meta.get("size_bytes"),
+        "leaderboard_score": meta.get("leaderboard_value"),
+        "leaderboard_metric": meta.get("leaderboard_metric"),
+        "leaderboard_split": meta.get("leaderboard_split"),
+        "leaderboard_provider": meta.get("leaderboard_provider"),
+        "leaderboard_comparable": meta.get("leaderboard_comparable"),
+        "last_updated": meta.get("last_updated"),
+    }
+    for disp, collapsed_key, _percol_key in metrics:
+        row[disp] = meta.get(collapsed_key)
+    if balance:
+        row["n_pos"] = n_pos
+        row["ratio"] = ratio
+    else:
+        row["skew"] = skew
+    return row
 
 
 def mirror_dataset(
@@ -803,6 +1000,13 @@ def mirror_dataset(
     dataset_dir.mkdir(parents=True, exist_ok=True)
 
     def fetch(filename: str) -> None:
+        """Fetch one file of this family into ``dataset_dir``, from ``from_dir`` or S3.
+
+        Parameters
+        ----------
+        filename : str
+            File to fetch, e.g. "data.csv" or "morgan.npy".
+        """
         dest = dataset_dir / filename
         if from_dir is not None:
             _copy_from_dir(source, task, dataset, filename, dest, from_dir)
@@ -816,7 +1020,7 @@ def mirror_dataset(
         if featurization is not None:
             fetch(f"{featurization}.npy")
 
-        # metadata.json (skip-if-exists, like the data files): prefer a copy from --from_dir,
+        # metadata.json (skip-if-exists, like the data files): prefer a copy from --from-dir,
         # else fall back to the packaged metadata.
         metadata_dest = dataset_dir / "metadata.json"
         if not metadata_dest.exists():
@@ -829,7 +1033,8 @@ def mirror_dataset(
                 shutil.copy2(local_metadata, metadata_dest)
             else:
                 shutil.copy2(
-                    _pkg_data_path(source, task, dataset, "metadata.json"), metadata_dest
+                    _pkg_data_path(source, task, dataset, "metadata.json"),
+                    metadata_dest,
                 )
     except Exception:
         _rmdir_if_empty_chain(dataset_dir, Path(output_dir))

@@ -23,8 +23,8 @@ import json
 import math
 from pathlib import Path
 
-from eosbench import get_catalog, DatasetInfo
-from eosbench.dataset import S3_BASE, catalog_columns, _head_ok
+from eosbench import DatasetInfo, get_catalog
+from eosbench.dataset import S3_BASE, _head_ok, catalog_columns
 
 TASKS = ("classification", "regression")
 
@@ -50,7 +50,19 @@ def _clean(v):
 
 
 def build_catalog(head_check=_head_ok) -> dict:
-    """Build the catalog payload. ``head_check(url) -> bool`` decides availability (injectable)."""
+    """Build the catalog payload for the static site.
+
+    Parameters
+    ----------
+    head_check : callable, default `_head_ok`
+        ``head_check(url) -> bool``; decides per-dataset S3 availability. Injectable
+        for testing.
+
+    Returns
+    -------
+    dict
+        ``{"generated_at", "s3_base", "n_datasets", "n_available", "columns", "datasets"}``.
+    """
     records: list[dict] = []
     for task in TASKS:
         df = get_catalog(task=task)  # all sources; empty frame if none for this task
@@ -79,6 +91,7 @@ def build_catalog(head_check=_head_ok) -> dict:
 
 
 def main() -> None:
+    """Entry point: build the catalog payload and write it to ``--out``."""
     parser = argparse.ArgumentParser(description="Export the eosbench catalog to JSON.")
     parser.add_argument(
         "--out",

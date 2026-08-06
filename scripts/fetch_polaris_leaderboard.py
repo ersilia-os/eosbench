@@ -63,14 +63,25 @@ def _get_json(url: str) -> dict:
 
 
 def list_benchmark_ids(owner_prefix: str) -> list[str]:
-    """All Hub benchmark ids (v2 + v1, paginated) whose owner matches ``owner_prefix``."""
+    """All Hub benchmark ids (v2 + v1, paginated) whose owner matches ``owner_prefix``.
+
+    Parameters
+    ----------
+    owner_prefix : str
+        Hub owner to filter to, e.g. "tdcommons".
+
+    Returns
+    -------
+    list of str
+        Benchmark ids as ``"owner/slug"``.
+    """
     ids: list[str] = []
     for version in ("v2", "v1"):
         offset = 0
         while True:
-            batch = _get_json(f"{HUB_API}/{version}/benchmark?limit=100&offset={offset}")[
-                "data"
-            ]
+            batch = _get_json(
+                f"{HUB_API}/{version}/benchmark?limit=100&offset={offset}"
+            )["data"]
             if not batch:
                 break
             ids.extend(b["artifactId"] for b in batch)
@@ -81,14 +92,35 @@ def list_benchmark_ids(owner_prefix: str) -> list[str]:
 
 
 def slugify(benchmark_id: str) -> str:
+    """Turn a Hub benchmark id into the eosbench dataset slug.
+
+    Parameters
+    ----------
+    benchmark_id : str
+        Benchmark id as ``"owner/slug"``, e.g. "tdcommons/ames".
+
+    Returns
+    -------
+    str
+    """
     return benchmark_id.split("/")[-1].lower()
 
 
 def fetch_top_result(owner: str, slug: str) -> dict | None:
     """Fetch this benchmark's declared metric and its current best submitted score.
 
-    Returns ``None`` if the benchmark isn't classification (no ``nClasses``) or has no
-    submitted results yet.
+    Parameters
+    ----------
+    owner : str
+        Hub owner, e.g. "tdcommons".
+    slug : str
+        Benchmark slug, e.g. "ames".
+
+    Returns
+    -------
+    dict or None
+        ``{"metric", "value", "model_name"}`` for the top result, or ``None`` if the
+        benchmark isn't classification (no ``nClasses``) or has no submitted results yet.
     """
     detail = _get_json(f"{HUB_API}/v1/benchmark/{owner}/{slug}")
     if not detail.get("nClasses"):
@@ -117,6 +149,23 @@ def fetch_top_result(owner: str, slug: str) -> dict | None:
 
 
 def build_entry(owner: str, slug: str, today: str) -> dict | None:
+    """Fetch and format one benchmark's top result as a leaderboard-JSON entry.
+
+    Parameters
+    ----------
+    owner : str
+        Hub owner, e.g. "tdcommons".
+    slug : str
+        Benchmark slug, e.g. "ames".
+    today : str
+        Today's date (``YYYY-MM-DD``), recorded as ``fetched_at``.
+
+    Returns
+    -------
+    dict or None
+        A ``tdcommons_leaderboard.json``-shaped entry, or ``None`` if the fetch failed
+        or found no classification results (logged either way).
+    """
     try:
         top = fetch_top_result(owner, slug)
     except (urllib.error.URLError, urllib.error.HTTPError) as e:
@@ -128,7 +177,9 @@ def build_entry(owner: str, slug: str, today: str) -> dict | None:
     metric_name = {"roc_auc": "AUROC", "pr_auc": "AUPRC"}.get(
         top["metric"], top["metric"].upper()
     )
-    print(f"  [{owner}/{slug}] {metric_name} {top['value']:.3f} ({top['model_name']!r})")
+    print(
+        f"  [{owner}/{slug}] {metric_name} {top['value']:.3f} ({top['model_name']!r})"
+    )
     return {
         "metric": metric_name,
         "value": round(float(top["value"]), 4),
@@ -146,6 +197,7 @@ def build_entry(owner: str, slug: str, today: str) -> dict | None:
 
 
 def main() -> None:
+    """Entry point: fetch, write ``polaris_leaderboard.json``, and sync ``metadata.json``."""
     parser = argparse.ArgumentParser(
         description="Fetch live leaderboard scores from the Polaris Hub."
     )
@@ -198,8 +250,10 @@ def main() -> None:
     if not args.no_patch:
         patcher.process("polaris", OUT_JSON)
     else:
-        print("(--no_patch: metadata.json not synced; run patch_leaderboard_metadata.py "
-              "--sources polaris to apply)")
+        print(
+            "(--no_patch: metadata.json not synced; run patch_leaderboard_metadata.py "
+            "--sources polaris to apply)"
+        )
 
 
 if __name__ == "__main__":

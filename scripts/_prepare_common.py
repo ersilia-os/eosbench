@@ -23,7 +23,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 from rdkit import Chem, RDLogger
 from rdkit.Chem import AllChem, Descriptors
 from rdkit.Chem.Scaffolds import MurckoScaffold
@@ -58,8 +57,18 @@ _RDKIT_DESC = [name for name, _ in Descriptors.descList][:RDKIT_DIM]
 def coerce_binary(series: pd.Series) -> pd.Series | None:
     """Coerce a label column to {0.0, 1.0} floats with NaN preserved.
 
-    Returns None if non-missing values aren't binary, or fewer than two classes appear.
     Shared by the ``prepare_*.py`` scripts so every source validates labels identically.
+
+    Parameters
+    ----------
+    series : pandas.Series
+        Raw label column, any dtype ``pandas.to_numeric`` can coerce.
+
+    Returns
+    -------
+    pandas.Series or None
+        The coerced column, or ``None`` if non-missing values aren't binary, or fewer
+        than two classes appear.
     """
     num = pd.to_numeric(series, errors="coerce")
     present = num.dropna().round()
@@ -71,8 +80,18 @@ def coerce_binary(series: pd.Series) -> pd.Series | None:
 def coerce_continuous(series: pd.Series) -> pd.Series | None:
     """Coerce a label column to floats with NaN preserved, for regression targets.
 
-    Sibling of :func:`coerce_binary`. Returns None only if the column has no usable signal
-    (all-missing, or a single constant value with zero variance).
+    Sibling of :func:`coerce_binary`.
+
+    Parameters
+    ----------
+    series : pandas.Series
+        Raw label column, any dtype ``pandas.to_numeric`` can coerce.
+
+    Returns
+    -------
+    pandas.Series or None
+        The coerced column, or ``None`` if the column has no usable signal (all-missing,
+        or a single constant value with zero variance).
     """
     num = pd.to_numeric(series, errors="coerce")
     present = num.dropna()
@@ -84,9 +103,20 @@ def coerce_continuous(series: pd.Series) -> pd.Series | None:
 def parse_molecules(smiles: list[str]) -> tuple[list[str], list[Chem.Mol], np.ndarray]:
     """Canonicalize SMILES and drop unparseable rows.
 
-    Returns ``(canonical_smiles, mols, keep_mask)`` where ``keep_mask`` is a boolean
-    array over the input aligned to the originals, so labels/splits can be filtered the
-    same way.
+    Parameters
+    ----------
+    smiles : list of str
+        Raw SMILES strings.
+
+    Returns
+    -------
+    canonical_smiles : list of str
+        Canonicalized SMILES for the parseable rows only.
+    mols : list of rdkit.Chem.Mol
+        Parsed molecules, aligned with ``canonical_smiles``.
+    keep_mask : numpy.ndarray
+        Boolean array over the *original* input, so labels/splits can be filtered the
+        same way.
     """
     canon, mols, keep = [], [], []
     for smi in smiles:
@@ -104,7 +134,19 @@ def parse_molecules(smiles: list[str]) -> tuple[list[str], list[Chem.Mol], np.nd
 # Featurization
 # --------------------------------------------------------------------------------------
 def featurize_morgan(mols: list[Chem.Mol]) -> np.ndarray:
-    """Morgan count fingerprints, shape (n, 2048) int64."""
+    """Morgan count fingerprints.
+
+    Parameters
+    ----------
+    mols : list of rdkit.Chem.Mol
+        Parsed molecules.
+
+    Returns
+    -------
+    numpy.ndarray
+        Shape ``(n, 2048)``, ``int64``. A molecule RDKit fails to featurize gets a
+        zero vector rather than raising (see the ``except`` below).
+    """
     out = np.zeros((len(mols), MORGAN_NBITS), dtype=np.int64)
     for i, mol in enumerate(mols):
         try:
@@ -120,7 +162,19 @@ def featurize_morgan(mols: list[Chem.Mol]) -> np.ndarray:
 
 
 def featurize_rdkit(mols: list[Chem.Mol]) -> np.ndarray:
-    """RDKit physicochemical descriptors, shape (n, 217) float64."""
+    """RDKit physicochemical descriptors.
+
+    Parameters
+    ----------
+    mols : list of rdkit.Chem.Mol
+        Parsed molecules.
+
+    Returns
+    -------
+    numpy.ndarray
+        Shape ``(n, 217)``, ``float64``. A descriptor RDKit fails to compute for a given
+        molecule is recorded as 0 (via ``nan_to_num``) rather than raising.
+    """
     out = np.zeros((len(mols), len(_RDKIT_DESC)), dtype=np.float64)
     funcs = {name: fn for name, fn in Descriptors.descList if name in set(_RDKIT_DESC)}
     for i, mol in enumerate(mols):
@@ -142,12 +196,28 @@ FEATURIZERS = {"morgan": featurize_morgan, "rdkit": featurize_rdkit}
 def make_random_folds(
     n: int, k: int = 5, seed: int = 42, stratify: np.ndarray | None = None
 ) -> np.ndarray:
-    """Deterministic random K-fold assignment, shape (n,) of ints in [0, k).
+    """Deterministic random K-fold assignment.
 
     When ``stratify`` (a label array) is given, uses ``StratifiedKFold`` so every fold
     contains both classes. This is only possible for a single-task family — a conserved
     multi-task split has no single label to stratify on, so it passes ``stratify=None``
     and falls back to a plain shuffled ``KFold``.
+
+    Parameters
+    ----------
+    n : int
+        Number of samples.
+    k : int, default 5
+        Number of folds.
+    seed : int, default 42
+        Random seed for the shuffle.
+    stratify : numpy.ndarray or None
+        Per-sample class labels to stratify on, or ``None`` for a plain shuffled split.
+
+    Returns
+    -------
+    numpy.ndarray
+        Shape ``(n,)``, ints in ``[0, k)`` — the fold index of each sample.
     """
     folds = np.empty(n, dtype=int)
     if stratify is not None:
@@ -183,7 +253,6 @@ def scaffold_split(
 
     Molecules are grouped by Murcko scaffold (so a scaffold never spans train and test).
     ``valid`` is merged into ``train`` (frac_train=0.9 = canonical 0.8 train + 0.1 valid).
-    Returns an array of ``"train"``/``"test"`` labels, shape (n,).
 
     With ``y`` given (single-task family), the split is **class-stratified**: each scaffold
     group is binned by its majority label and the size-descending train/test fill runs
@@ -192,6 +261,20 @@ def scaffold_split(
 
     With ``y=None`` (conserved multi-task split, where no single label exists), it falls
     back to a plain size-descending fill.
+
+    Parameters
+    ----------
+    mols : list of rdkit.Chem.Mol
+        Parsed molecules.
+    y : numpy.ndarray or None
+        Per-molecule binary labels to stratify on, or ``None`` for a plain fill.
+    frac_train : float, default 0.9
+        Target train fraction (0.8 train + 0.1 valid, valid merged into train).
+
+    Returns
+    -------
+    numpy.ndarray
+        Shape ``(n,)`` array of ``"train"``/``"test"`` labels.
     """
     groups = _murcko_groups(mols)
 
@@ -267,7 +350,25 @@ def _rf(seed: int) -> RandomForestClassifier:
 def rf_baseline_cv(
     X: np.ndarray, y: np.ndarray, random_fold: np.ndarray, seed: int = 42
 ):
-    """RandomForest baseline over random K-fold CV. Returns AUROC/AUPR mean & std."""
+    """RandomForest classification baseline over random K-fold CV.
+
+    Parameters
+    ----------
+    X : numpy.ndarray
+        Feature matrix.
+    y : numpy.ndarray
+        Binary labels.
+    random_fold : numpy.ndarray
+        Per-sample fold index, as produced by :func:`make_random_folds`.
+    seed : int, default 42
+        Random seed for the classifier.
+
+    Returns
+    -------
+    dict
+        ``auroc_mean``/``auroc_std``/``aupr_mean``/``aupr_std`` across folds, or all
+        ``None`` if no fold had both classes on both sides.
+    """
     aurocs, auprs = [], []
     for k in sorted(set(random_fold.tolist())):
         tr, te = random_fold != k, random_fold == k
@@ -295,7 +396,24 @@ def rf_baseline_cv(
 def rf_baseline_holdout(
     X: np.ndarray, y: np.ndarray, scaffold: np.ndarray, seed: int = 42
 ):
-    """RandomForest baseline on the scaffold holdout (fit on train, score on test)."""
+    """RandomForest classification baseline on the scaffold holdout (fit train, score test).
+
+    Parameters
+    ----------
+    X : numpy.ndarray
+        Feature matrix.
+    y : numpy.ndarray
+        Binary labels.
+    scaffold : numpy.ndarray
+        Per-sample ``"train"``/``"test"`` holdout labels.
+    seed : int, default 42
+        Random seed for the classifier.
+
+    Returns
+    -------
+    dict
+        ``auroc``/``aupr``, or both ``None`` if either side is empty or single-class.
+    """
     tr, te = scaffold == "train", scaffold == "test"
     if (
         tr.sum() == 0
@@ -316,8 +434,28 @@ def _rfr(seed: int) -> RandomForestRegressor:
     return RandomForestRegressor(n_estimators=300, n_jobs=-1, random_state=seed)
 
 
-def rf_regression_cv(X: np.ndarray, y: np.ndarray, random_fold: np.ndarray, seed: int = 42):
-    """RandomForest regression baseline over random K-fold CV. Returns RMSE/R2 mean & std."""
+def rf_regression_cv(
+    X: np.ndarray, y: np.ndarray, random_fold: np.ndarray, seed: int = 42
+):
+    """RandomForest regression baseline over random K-fold CV.
+
+    Parameters
+    ----------
+    X : numpy.ndarray
+        Feature matrix.
+    y : numpy.ndarray
+        Continuous targets.
+    random_fold : numpy.ndarray
+        Per-sample fold index, as produced by :func:`make_random_folds`.
+    seed : int, default 42
+        Random seed for the regressor.
+
+    Returns
+    -------
+    dict
+        ``rmse_mean``/``rmse_std``/``r2_mean``/``r2_std`` across folds, or all ``None``
+        if no fold had at least 2 samples on both sides.
+    """
     rmses, r2s = [], []
     for k in sorted(set(random_fold.tolist())):
         tr, te = random_fold != k, random_fold == k
@@ -337,8 +475,27 @@ def rf_regression_cv(X: np.ndarray, y: np.ndarray, random_fold: np.ndarray, seed
     }
 
 
-def rf_regression_holdout(X: np.ndarray, y: np.ndarray, scaffold: np.ndarray, seed: int = 42):
-    """RandomForest regression baseline on the scaffold holdout (fit train, score test)."""
+def rf_regression_holdout(
+    X: np.ndarray, y: np.ndarray, scaffold: np.ndarray, seed: int = 42
+):
+    """RandomForest regression baseline on the scaffold holdout (fit train, score test).
+
+    Parameters
+    ----------
+    X : numpy.ndarray
+        Feature matrix.
+    y : numpy.ndarray
+        Continuous targets.
+    scaffold : numpy.ndarray
+        Per-sample ``"train"``/``"test"`` holdout labels.
+    seed : int, default 42
+        Random seed for the regressor.
+
+    Returns
+    -------
+    dict
+        ``rmse``/``r2``, or both ``None`` if either side has fewer than 2 samples.
+    """
     tr, te = scaffold == "train", scaffold == "test"
     if tr.sum() < 2 or te.sum() < 2:
         return {"rmse": None, "r2": None}
@@ -354,6 +511,13 @@ def rf_regression_holdout(X: np.ndarray, y: np.ndarray, scaffold: np.ndarray, se
 # Metadata + writing
 # --------------------------------------------------------------------------------------
 def today_iso() -> str:
+    """Today's date, for a family's ``last_updated`` field.
+
+    Returns
+    -------
+    str
+        Today's date as ``YYYY-MM-DD``.
+    """
     return _dt.date.today().isoformat()
 
 
@@ -406,10 +570,10 @@ def _skewness(y) -> float | None:
     if len(y) < 3:
         return None
     d = y - y.mean()
-    m2 = float((d ** 2).mean())
+    m2 = float((d**2).mean())
     if m2 == 0.0:
         return 0.0
-    return float((d ** 3).mean() / m2 ** 1.5)
+    return float((d**3).mean() / m2**1.5)
 
 
 def _build_task_block(
@@ -517,7 +681,38 @@ def prepare_family(
     split (e.g. Polaris's official train/test split). ``holdout_method`` is the label recorded
     as ``scaffold_split_method`` in the metadata (e.g. ``"polaris"``).
 
-    Returns the path to the written ``data/`` dataset directory.
+    Parameters
+    ----------
+    source : str
+        Dataset source, e.g. ``"tdcommons"``.
+    family : str
+        Family (dataset) name.
+    smiles : list of str
+        Raw SMILES, one per molecule, aligned to ``label_df``.
+    label_df : pandas.DataFrame
+        One column per label endpoint, aligned to ``smiles``; NaN where unlabeled.
+    task : str, default "classification"
+        ``"classification"`` or ``"regression"``.
+    featurizers : tuple of str, default ("morgan", "rdkit")
+        Which feature matrices to compute.
+    n_folds : int, default 5
+        Number of random CV folds.
+    seed : int, default 42
+        Random seed for the CV folds and the RandomForest baseline.
+    leaderboard : dict or None
+        Leaderboard reference entry (see e.g. ``tdcommons_leaderboard.json``), or ``None``.
+    compute_baseline : bool, default True
+        Whether to train the RandomForest baseline (slow for very large families).
+    holdout : numpy.ndarray or None
+        A source-provided ``"train"``/``"test"`` array aligned to the original ``smiles``
+        (before the unparseable-SMILES filter), used verbatim instead of computing one here.
+    holdout_method : str, default "scaffold"
+        Label recorded as ``scaffold_split_method`` in the metadata.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the written ``data/`` dataset directory.
     """
     canon, mols, keep = parse_molecules(smiles)
     dropped = int((~keep).sum())
@@ -529,23 +724,9 @@ def prepare_family(
         raise ValueError(f"[{family}] no parseable molecules")
 
     columns = list(label_df.columns)
-    single = len(columns) == 1
-
-    # Conserved split over all family molecules; class-stratify only for a single-column,
-    # fully-labeled *classification* family (regression has no classes to balance).
-    stratify = None
-    if task == "classification" and single and label_df[columns[0]].notna().all():
-        stratify = label_df[columns[0]].to_numpy().astype(int)
-    random_fold = make_random_folds(n_mol, k=n_folds, seed=seed, stratify=stratify)
-    if holdout is not None:
-        # Source-provided split (e.g. Polaris): filter to parseable rows, use verbatim.
-        scaffold = np.asarray(holdout, dtype=object)[keep]
-        scaffold_method = holdout_method
-    else:
-        scaffold = scaffold_split(
-            mols, stratify
-        )  # stratify (or None) drives class-balancing
-        scaffold_method = "stratified-murcko" if stratify is not None else "murcko"
+    stratify, random_fold, scaffold, scaffold_method = _compute_family_split(
+        mols, label_df, columns, task, n_folds, seed, holdout, holdout_method, keep
+    )
 
     features = {feat: FEATURIZERS[feat](mols) for feat in featurizers}
     base_feat = "morgan" if "morgan" in features else featurizers[0]
@@ -609,6 +790,71 @@ def prepare_family(
     }
 
     out_dir = DATA_ROOT / source / task / family
+    pkg_dir = PKG_DATA_ROOT / source / task / family
+    _write_family_files(
+        out_dir,
+        pkg_dir,
+        canon,
+        label_df,
+        columns,
+        random_fold,
+        scaffold,
+        features,
+        metadata,
+    )
+    _print_family_summary(
+        family, task, n_mol, columns, metadata, column_blocks, out_dir
+    )
+    return out_dir
+
+
+def _compute_family_split(
+    mols, label_df, columns, task, n_folds, seed, holdout, holdout_method, keep
+):
+    """Compute the random-fold and scaffold/holdout split arrays for a family.
+
+    Class-stratifies the random folds only for a single-column, fully-labeled
+    classification family (regression has no classes to balance).
+
+    Returns
+    -------
+    stratify : numpy.ndarray or None
+    random_fold : numpy.ndarray
+    scaffold : numpy.ndarray
+    scaffold_method : str
+    """
+    single = len(columns) == 1
+    stratify = None
+    if task == "classification" and single and label_df[columns[0]].notna().all():
+        stratify = label_df[columns[0]].to_numpy().astype(int)
+    random_fold = make_random_folds(len(mols), k=n_folds, seed=seed, stratify=stratify)
+    if holdout is not None:
+        # Source-provided split (e.g. Polaris): filter to parseable rows, use verbatim.
+        scaffold = np.asarray(holdout, dtype=object)[keep]
+        scaffold_method = holdout_method
+    else:
+        scaffold = scaffold_split(
+            mols, stratify
+        )  # stratify (or None) drives class-balancing
+        scaffold_method = "stratified-murcko" if stratify is not None else "murcko"
+    return stratify, random_fold, scaffold, scaffold_method
+
+
+def _write_family_files(
+    out_dir: Path,
+    pkg_dir: Path,
+    canon: list[str],
+    label_df: pd.DataFrame,
+    columns: list[str],
+    random_fold: np.ndarray,
+    scaffold: np.ndarray,
+    features: dict[str, np.ndarray],
+    metadata: dict,
+) -> None:
+    """Write data.csv, folds.csv, feature .npy files, and metadata.json (both copies).
+
+    Mutates ``metadata`` in place, adding ``size_bytes`` once the payload is on disk.
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
 
     data = pd.DataFrame({"smiles": canon})
@@ -631,11 +877,21 @@ def prepare_family(
         json.dump(metadata, f, indent=2)
 
     # Bundle a copy of metadata.json so the family appears in the catalog.
-    pkg_dir = PKG_DATA_ROOT / source / task / family
     pkg_dir.mkdir(parents=True, exist_ok=True)
     with open(pkg_dir / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 
+
+def _print_family_summary(
+    family: str,
+    task: str,
+    n_mol: int,
+    columns: list[str],
+    metadata: dict,
+    column_blocks: dict[str, dict],
+    out_dir: Path,
+) -> None:
+    """Print the one-line family summary plus a per-column line, task-aware."""
     if task == "regression":
         print(
             f"  [{family}] mols={n_mol} columns={len(columns)} "
@@ -659,7 +915,6 @@ def prepare_family(
                 f"cv_auroc={_fmt(b['random_auroc_mean'])} "
                 f"scaffold_auroc={_fmt(b['scaffold_auroc'])}"
             )
-    return out_dir
 
 
 def _fmt(v) -> str:

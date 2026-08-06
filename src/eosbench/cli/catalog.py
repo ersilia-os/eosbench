@@ -8,10 +8,10 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
-from ..dataset import get_catalog, check_availability
+from ..dataset import check_availability, get_catalog
 
 # Columns that may appear in a get_catalog() frame (collapsed or expand=True,
-# classification or regression). --sort_by is validated against the actual
+# classification or regression). --sort-by is validated against the actual
 # frame at runtime, so listing the superset here is fine.
 SORT_COLUMNS = [
     "name",
@@ -48,7 +48,7 @@ NUMERIC_COLUMNS = COUNT_COLUMNS | {
     "leaderboard_score",
 }
 # Friendlier header labels for the rendered table. The underlying DataFrame
-# column names (used by --sort_by and the library API) are unchanged.
+# column names (used by --sort-by and the library API) are unchanged.
 DISPLAY_NAMES = {
     "name": "dataset",
     "n_columns": "columns",
@@ -104,21 +104,46 @@ def filter_catalog(
     on metric/ratio columns drop rows with missing (NaN/None) values, since a
     dataset with an unknown value cannot be shown to clear a threshold. A metric
     filter whose column is absent for the current task raises a clear error.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        A ``get_catalog()`` frame.
+    name : str or None
+        Case-insensitive substring filter on the dataset name.
+    min_samples, max_samples : int or None
+        Inclusive bounds on ``n_tot``.
+    min_ratio, max_ratio : float or None
+        Inclusive bounds on ``ratio`` (classification).
+    min_auroc, max_auroc, min_auprc, max_auprc : float or None
+        Inclusive bounds on ``auroc``/``auprc`` (classification).
+    min_rmse, max_rmse, min_r2, max_r2 : float or None
+        Inclusive bounds on ``rmse``/``r2`` (regression).
+    sort_by : str or None
+        Column to sort by.
+    desc : bool, default False
+        Sort descending instead of ascending.
+    limit : int or None
+        Keep only the first ``limit`` rows after sorting.
+
+    Returns
+    -------
+    pandas.DataFrame
     """
     if name is not None:
         df = df[df["name"].str.contains(name, case=False, na=False)]
-    df = _threshold(df, "n_tot", min_samples, ">=", "--min_samples")
-    df = _threshold(df, "n_tot", max_samples, "<=", "--max_samples")
-    df = _threshold(df, "ratio", min_ratio, ">=", "--min_ratio")
-    df = _threshold(df, "ratio", max_ratio, "<=", "--max_ratio")
-    df = _threshold(df, "auroc", min_auroc, ">=", "--min_auroc")
-    df = _threshold(df, "auroc", max_auroc, "<=", "--max_auroc")
-    df = _threshold(df, "auprc", min_auprc, ">=", "--min_auprc")
-    df = _threshold(df, "auprc", max_auprc, "<=", "--max_auprc")
-    df = _threshold(df, "rmse", min_rmse, ">=", "--min_rmse")
-    df = _threshold(df, "rmse", max_rmse, "<=", "--max_rmse")
-    df = _threshold(df, "r2", min_r2, ">=", "--min_r2")
-    df = _threshold(df, "r2", max_r2, "<=", "--max_r2")
+    df = _threshold(df, "n_tot", min_samples, ">=", "--min-samples")
+    df = _threshold(df, "n_tot", max_samples, "<=", "--max-samples")
+    df = _threshold(df, "ratio", min_ratio, ">=", "--min-ratio")
+    df = _threshold(df, "ratio", max_ratio, "<=", "--max-ratio")
+    df = _threshold(df, "auroc", min_auroc, ">=", "--min-auroc")
+    df = _threshold(df, "auroc", max_auroc, "<=", "--max-auroc")
+    df = _threshold(df, "auprc", min_auprc, ">=", "--min-auprc")
+    df = _threshold(df, "auprc", max_auprc, "<=", "--max-auprc")
+    df = _threshold(df, "rmse", min_rmse, ">=", "--min-rmse")
+    df = _threshold(df, "rmse", max_rmse, "<=", "--max-rmse")
+    df = _threshold(df, "r2", min_r2, ">=", "--min-r2")
+    df = _threshold(df, "r2", max_r2, "<=", "--max-r2")
 
     if sort_by is not None:
         if sort_by not in df.columns:
@@ -264,7 +289,9 @@ def _leaderboard_cell(row) -> str:
 
 
 def _source_cell(_col, v) -> str:
-    return "[dim]-[/dim]" if _is_missing(v) else f"[{_source_color(v)}]{escape(str(v))}[/]"
+    return (
+        "[dim]-[/dim]" if _is_missing(v) else f"[{_source_color(v)}]{escape(str(v))}[/]"
+    )
 
 
 def _plain_cell(col, v) -> str:
@@ -294,7 +321,7 @@ def _baseline_cell(row) -> str:
 
 
 # Ordered display spec: (df-column-key-or-None, header, justify, render(row)).
-# `key` is what --sort_by sees; rendering reads whatever fields it needs from the row.
+# `key` is what --sort-by sees; rendering reads whatever fields it needs from the row.
 _RENDERERS = {
     "id": lambda r: f"[dim]{escape(str(r['id']))}[/dim]",
     "name": lambda r: f"[cyan]{escape(str(r['name']))}[/cyan]",
@@ -307,17 +334,24 @@ _RENDERERS = {
 
 # Display-only merges: each group of raw df columns collapses to one task-aware column.
 _MERGES = {
-    "balance": ("ratio", "skew"),                       # class balance OR target skew
-    "baseline": _METRIC_COLS,                            # auroc/auprc OR rmse/r2
+    "balance": ("ratio", "skew"),  # class balance OR target skew
+    "baseline": _METRIC_COLS,  # auroc/auprc OR rmse/r2
     # leaderboard_comparable renders as a trailing glyph on this cell rather than its own
     # column (see _leaderboard_cell) -- kept out of the table as raw text either way.
-    "leaderboard": ("leaderboard_score", "leaderboard_metric", "leaderboard_comparable"),
+    "leaderboard": (
+        "leaderboard_score",
+        "leaderboard_metric",
+        "leaderboard_comparable",
+    ),
 }
 _MERGE_OF = {col: key for key, group in _MERGES.items() for col in group}
 _HIDE = frozenset()  # every df column is shown
 
 # Compact, color-coded task tags (nicer than the long "classification"/"regression").
-_TASK_TAGS = {"classification": "[cyan]cls[/cyan]", "regression": "[magenta]reg[/magenta]"}
+_TASK_TAGS = {
+    "classification": "[cyan]cls[/cyan]",
+    "regression": "[magenta]reg[/magenta]",
+}
 
 
 def _task_cell(v) -> str:
@@ -355,7 +389,7 @@ def _display_columns(df):
     Collapses task-specific raw columns into single task-aware display columns — class
     metrics + regression metrics → 'baseline'; ratio + skew → 'balance'; the leaderboard
     score/metric pair → 'leaderboard' — so a mixed classification/regression table is
-    uniform with no empty cells. The DataFrame keeps all raw columns (so --sort_by and the
+    uniform with no empty cells. The DataFrame keeps all raw columns (so --sort-by and the
     API are unchanged).
     """
     spec = []
@@ -371,7 +405,9 @@ def _display_columns(df):
             continue
         header = DISPLAY_NAMES.get(col, col)
         justify = "right" if col in NUMERIC_COLUMNS else "left"
-        render = _RENDERERS.get(col, (lambda c: lambda r: _plain_cell(c, r.get(c)))(col))
+        render = _RENDERERS.get(
+            col, (lambda c: lambda r: _plain_cell(c, r.get(c)))(col)
+        )
         spec.append((header, justify, render))
 
     # Place the label-shape cue (balance) just before the baseline metrics.
@@ -400,7 +436,7 @@ def _caption(full, shown, args) -> str:
 
 
 _EPILOG = """\
-columns (which appear depends on --task; --sort_by key in parentheses):
+columns (which appear depends on --task; --sort-by key in parentheses):
   dataset       Dataset (family) identifier, e.g. "ames", "sider". (key: name)
   source        Where the data comes from: tdcommons or moleculenet.
   task          Task type: classification or regression.
@@ -415,7 +451,7 @@ columns (which appear depends on --task; --sort_by key in parentheses):
   auroc, auprc  Baseline AUROC / AUPRC (color-graded green/yellow/red). [classification]
   rmse, r2      Baseline RMSE / R-squared.             [regression]
   leaderboard   Best published score + its metric, e.g. "0.871 AUROC", where known.
-                (sort with --sort_by leaderboard_score)
+                (sort with --sort-by leaderboard_score)
   lb_split      What split that published score was computed on (e.g. "scaffold",
                 "random"). Only directly comparable to this row's own scaffold split
                 when lb_provider is this same source (e.g. tdcommons via "polaris",
@@ -427,7 +463,7 @@ columns (which appear depends on --task; --sort_by key in parentheses):
                 tdcommons row citing a MoleculeNet number) -- see lb_split above.
   last_updated  Date the dataset entry was last refreshed (YYYY-MM-DD).
   on S3         Green check / red cross: whether the dataset is present on the public
-                S3 bucket right now. [--check_availability only]
+                S3 bucket right now. [--check-availability only]
 
 The auroc/auprc/rmse/r2 columns are a RandomForest baseline averaged over random
 K-fold cross-validation — a reference floor, not the best published model. The
@@ -437,30 +473,23 @@ dropped when output is piped.
 
 examples:
   eosbench catalog                                  list every dataset
-  eosbench catalog --task regression --sort_by rmse  regression sets, lowest RMSE first
+  eosbench catalog --task regression --sort-by rmse  regression sets, lowest RMSE first
   eosbench catalog --name cyp                        datasets whose name contains "cyp"
-  eosbench catalog --min_samples 1000 --max_ratio 0.5
+  eosbench catalog --min-samples 1000 --max-ratio 0.5
                                                     big, imbalanced datasets
-  eosbench catalog --min_auroc 0.8 --sort_by auroc --desc
+  eosbench catalog --min-auroc 0.8 --sort-by auroc --desc
                                                     strong baselines, best first
-  eosbench catalog --sort_by n_tot --desc --limit 5  the 5 largest datasets
+  eosbench catalog --sort-by n_tot --desc --limit 5  the 5 largest datasets
   eosbench catalog --expand                          one row per label column (multi-column sets)
-  eosbench catalog --name cyp --check_availability   also show live S3 availability
+  eosbench catalog --name cyp --check-availability   also show live S3 availability
 
 Threshold filters drop datasets with a missing value for that column (e.g.
---min_auroc skips datasets with no recorded AUROC). Filters combine with AND.
+--min-auroc skips datasets with no recorded AUROC). Filters combine with AND.
 """
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        prog="eosbench catalog",
-        description="List available eosbench datasets as a table, with optional "
-        "filtering, sorting and limiting.",
-        epilog=_EPILOG,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-
+def _add_selection_args(parser: argparse.ArgumentParser) -> None:
+    """Add the "dataset selection" argument group (``--source``/``--task``/``--expand``)."""
     selection = parser.add_argument_group("dataset selection")
     selection.add_argument(
         "--source",
@@ -482,6 +511,9 @@ def main():
         help="One row per label column instead of one row per dataset family.",
     )
 
+
+def _add_filter_args(parser: argparse.ArgumentParser) -> None:
+    """Add the "filters (combine with AND)" argument group (the min/max threshold flags)."""
     filters = parser.add_argument_group("filters (combine with AND)")
     filters.add_argument(
         "--name",
@@ -491,93 +523,96 @@ def main():
         help="Keep datasets whose name contains SUBSTR (case-insensitive).",
     )
     filters.add_argument(
-        "--min_samples",
+        "--min-samples",
         type=int,
         default=None,
         metavar="N",
         help="Keep datasets with n_tot >= N.",
     )
     filters.add_argument(
-        "--max_samples",
+        "--max-samples",
         type=int,
         default=None,
         metavar="N",
         help="Keep datasets with n_tot <= N.",
     )
     filters.add_argument(
-        "--min_ratio",
+        "--min-ratio",
         type=float,
         default=None,
         metavar="R",
         help="[classification] Keep datasets with positive-class ratio >= R.",
     )
     filters.add_argument(
-        "--max_ratio",
+        "--max-ratio",
         type=float,
         default=None,
         metavar="R",
         help="[classification] Keep datasets with positive-class ratio <= R.",
     )
     filters.add_argument(
-        "--min_auroc",
+        "--min-auroc",
         type=float,
         default=None,
         metavar="A",
         help="[classification] Keep datasets with baseline AUROC >= A.",
     )
     filters.add_argument(
-        "--max_auroc",
+        "--max-auroc",
         type=float,
         default=None,
         metavar="A",
         help="[classification] Keep datasets with baseline AUROC <= A.",
     )
     filters.add_argument(
-        "--min_auprc",
+        "--min-auprc",
         type=float,
         default=None,
         metavar="A",
         help="[classification] Keep datasets with baseline AUPRC >= A.",
     )
     filters.add_argument(
-        "--max_auprc",
+        "--max-auprc",
         type=float,
         default=None,
         metavar="A",
         help="[classification] Keep datasets with baseline AUPRC <= A.",
     )
     filters.add_argument(
-        "--min_rmse",
+        "--min-rmse",
         type=float,
         default=None,
         metavar="V",
         help="[regression] Keep datasets with baseline RMSE >= V.",
     )
     filters.add_argument(
-        "--max_rmse",
+        "--max-rmse",
         type=float,
         default=None,
         metavar="V",
         help="[regression] Keep datasets with baseline RMSE <= V.",
     )
     filters.add_argument(
-        "--min_r2",
+        "--min-r2",
         type=float,
         default=None,
         metavar="V",
         help="[regression] Keep datasets with baseline R-squared >= V.",
     )
     filters.add_argument(
-        "--max_r2",
+        "--max-r2",
         type=float,
         default=None,
         metavar="V",
         help="[regression] Keep datasets with baseline R-squared <= V.",
     )
 
+
+def _add_ordering_args(parser: argparse.ArgumentParser) -> None:
+    """Add the "sorting and limiting" argument group (``--sort-by``/``--desc``/``--limit``)."""
     ordering = parser.add_argument_group("sorting and limiting")
     ordering.add_argument(
-        "--sort_by",
+        "--sort-by",
         type=str,
         default=None,
         choices=SORT_COLUMNS,
@@ -599,9 +634,12 @@ def main():
         help="Show only the first N rows (after filtering and sorting).",
     )
 
+
+def _add_live_check_args(parser: argparse.ArgumentParser) -> None:
+    """Add the "live checks" argument group (``--check-availability``)."""
     live = parser.add_argument_group("live checks")
     live.add_argument(
-        "--check_availability",
+        "--check-availability",
         action="store_true",
         help="Live-check whether each shown dataset is present on the public S3 bucket "
         "yet, adding an 'on S3' column (green check / red cross). One HTTP HEAD request "
@@ -609,13 +647,37 @@ def main():
         "and adds latency; off by default.",
     )
 
-    args = parser.parse_args()
 
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the ``eosbench catalog`` argument parser.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(
+        prog="eosbench catalog",
+        description="List available eosbench datasets as a table, with optional "
+        "filtering, sorting and limiting.",
+        epilog=_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    _add_selection_args(parser)
+    _add_filter_args(parser)
+    _add_ordering_args(parser)
+    _add_live_check_args(parser)
+    return parser
+
+
+def _filter_and_sort(parser, args) -> pd.DataFrame:
+    """Load the catalog and apply the requested filters/sort (unlimited).
+
+    Exits via ``parser.error`` on an invalid filter (e.g. a metric column absent
+    for the current task).
+    """
     df = get_catalog(source=args.source, task=args.task, expand=args.expand)
     try:
-        # Filter + sort the full frame; apply --limit afterwards so the caption can
-        # report how many rows were hidden.
-        full = filter_catalog(
+        return filter_catalog(
             df,
             name=args.name,
             min_samples=args.min_samples,
@@ -637,17 +699,21 @@ def main():
     except ValueError as e:
         parser.error(str(e))
 
-    shown = full.head(args.limit) if args.limit is not None else full
 
-    if args.check_availability and not shown.empty:
-        n_families = shown[["source", "task", "name"]].drop_duplicates().shape[0]
-        print(f"Checking S3 availability for {n_families} dataset(s)...", file=sys.stderr)
-        avail_map = _availability_map(shown)
-        shown = shown.copy()
-        shown["available"] = [
-            avail_map[key] for key in zip(shown["source"], shown["task"], shown["name"])
-        ]
+def _add_availability_column(shown: pd.DataFrame) -> pd.DataFrame:
+    """Live-check S3 availability and add the resulting ``available`` column."""
+    n_families = shown[["source", "task", "name"]].drop_duplicates().shape[0]
+    print(f"Checking S3 availability for {n_families} dataset(s)...", file=sys.stderr)
+    avail_map = _availability_map(shown)
+    shown = shown.copy()
+    shown["available"] = [
+        avail_map[key] for key in zip(shown["source"], shown["task"], shown["name"])
+    ]
+    return shown
 
+
+def _render_table(full, shown, args) -> None:
+    """Render ``shown`` as a Rich table with a caption summarizing ``full`` vs ``shown``."""
     spec = _display_columns(shown)
     table = Table(
         title="eosbench datasets",
@@ -676,6 +742,20 @@ def main():
 
     if shown.empty:
         print("No datasets matched the given filters.", file=sys.stderr)
+
+
+def main():
+    """Entry point for ``eosbench catalog``: parse args and print the filtered table."""
+    parser = _build_parser()
+    args = parser.parse_args()
+
+    full = _filter_and_sort(parser, args)
+    shown = full.head(args.limit) if args.limit is not None else full
+
+    if args.check_availability and not shown.empty:
+        shown = _add_availability_column(shown)
+
+    _render_table(full, shown, args)
 
 
 if __name__ == "__main__":

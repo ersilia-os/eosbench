@@ -1,9 +1,9 @@
 import argparse
 import sys
 
-from .catalog import filter_catalog
-from ..dataset import get_catalog, mirror_dataset, resolve_id, FEATURIZATIONS
+from ..dataset import FEATURIZATIONS, get_catalog, mirror_dataset, resolve_id
 from ..utils.logging import logger
+from .catalog import filter_catalog
 
 
 def _select_datasets(source, task, name):
@@ -36,7 +36,13 @@ def _fetch_many(targets, *, featurization, output_dir, from_dir):
     return failures
 
 
-def main():
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the ``eosbench fetch`` argument parser.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
     parser = argparse.ArgumentParser(
         description="Download an eosbench dataset to a local folder."
     )
@@ -54,7 +60,10 @@ def main():
         help="Dataset source, e.g. tdcommons or moleculenet (not needed with --id).",
     )
     parser.add_argument(
-        "--dataset", type=str, default=None, help="Dataset name, e.g. ames (not needed with --id)."
+        "--dataset",
+        type=str,
+        default=None,
+        help="Dataset name, e.g. ames (not needed with --id).",
     )
     parser.add_argument(
         "--all",
@@ -74,7 +83,7 @@ def main():
         help=f"Featurization to download: {', '.join(FEATURIZATIONS)} or none (default: morgan).",
     )
     parser.add_argument(
-        "--output_dir",
+        "--output-dir",
         type=str,
         default=".",
         help="Root output directory (default: .).",
@@ -86,7 +95,7 @@ def main():
         help="Task type (default: classification).",
     )
     parser.add_argument(
-        "--from_dir",
+        "--from-dir",
         dest="from_dir",
         type=str,
         default=None,
@@ -94,28 +103,31 @@ def main():
         help="Copy files from this local directory (laid out as "
         "DIR/{source}/{task}/{dataset}/) instead of downloading from S3.",
     )
-    args = parser.parse_args()
+    return parser
 
-    featurization = None if args.featurization.lower() == "none" else args.featurization
 
-    if args.all:
-        if args.id or args.dataset:
-            parser.error("--all cannot be combined with --id or --dataset.")
-        targets = _select_datasets(source=args.source, task=args.task, name=args.name)
-        if not targets:
-            logger.warning("No datasets matched the given filters.")
-            return
-        failures = _fetch_many(
-            targets,
-            featurization=featurization,
-            output_dir=args.output_dir,
-            from_dir=args.from_dir,
-        )
-        logger.info(f"Fetched {len(targets) - len(failures)}/{len(targets)} datasets.")
-        if failures:
-            sys.exit(1)
+def _run_fetch_all(parser, args) -> None:
+    """Handle ``--all``: fetch every dataset matching the source/task/name filters."""
+    if args.id or args.dataset:
+        parser.error("--all cannot be combined with --id or --dataset.")
+    targets = _select_datasets(source=args.source, task=args.task, name=args.name)
+    if not targets:
+        logger.warning("No datasets matched the given filters.")
         return
+    featurization = None if args.featurization.lower() == "none" else args.featurization
+    failures = _fetch_many(
+        targets,
+        featurization=featurization,
+        output_dir=args.output_dir,
+        from_dir=args.from_dir,
+    )
+    logger.info(f"Fetched {len(targets) - len(failures)}/{len(targets)} datasets.")
+    if failures:
+        sys.exit(1)
 
+
+def _run_fetch_one(parser, args) -> None:
+    """Handle the default case: fetch the single dataset identified by --id or --source/--dataset."""
     if args.name is not None:
         parser.error("--name only applies together with --all.")
 
@@ -129,6 +141,7 @@ def main():
     elif not (source and dataset):
         parser.error("provide --id, or both --source and --dataset.")
 
+    featurization = None if args.featurization.lower() == "none" else args.featurization
     try:
         dest = mirror_dataset(
             source=source,
@@ -142,6 +155,17 @@ def main():
         logger.error(str(e))
         sys.exit(1)
     logger.success(f"Dataset saved to {dest}")
+
+
+def main():
+    """Entry point for ``eosbench fetch``: parse args and mirror the requested dataset(s)."""
+    parser = _build_parser()
+    args = parser.parse_args()
+
+    if args.all:
+        _run_fetch_all(parser, args)
+    else:
+        _run_fetch_one(parser, args)
 
 
 if __name__ == "__main__":

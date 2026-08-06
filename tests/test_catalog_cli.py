@@ -3,22 +3,27 @@ import pandas as pd
 import pytest
 
 from eosbench import get_catalog
-from eosbench.dataset import catalog_columns
 from eosbench.cli.catalog import (
-    filter_catalog,
+    _display_columns,
     _fmt_cell,
-    _human_count,
     _grade_color,
+    _human_count,
+    _leaderboard_cell,
     _ratio_cell,
     _skew_cell,
-    _leaderboard_cell,
-    _display_columns,
+    filter_catalog,
 )
+from eosbench.dataset import catalog_columns
 
 
 @pytest.fixture
 def catalog():
-    """A small synthetic catalog frame with a NaN-metric row."""
+    """A small synthetic catalog frame with a NaN-metric row.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
     return pd.DataFrame(
         {
             "name": ["ames", "bbbp", "herg", "sider"],
@@ -110,7 +115,12 @@ def test_filter_catalog_works_on_real_get_catalog():
 
 @pytest.fixture
 def regression_catalog():
-    """A synthetic regression catalog: rmse/r2 metrics, no n_pos/ratio."""
+    """A synthetic regression catalog: rmse/r2 metrics, no n_pos/ratio.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
     return pd.DataFrame(
         {
             "name": ["esol", "freesolv", "lipo"],
@@ -201,7 +211,10 @@ def test_catalog_columns_include_leaderboard():
 def test_get_catalog_surfaces_leaderboard_for_moleculenet():
     df = get_catalog(source="moleculenet")
     assert {
-        "leaderboard_score", "leaderboard_metric", "leaderboard_split", "leaderboard_provider",
+        "leaderboard_score",
+        "leaderboard_metric",
+        "leaderboard_split",
+        "leaderboard_provider",
     } <= set(df.columns)
     sider = df.loc[df["name"] == "sider"].iloc[0]
     assert sider["leaderboard_metric"] == "AUROC"
@@ -293,18 +306,19 @@ def test_fmt_cell_metrics_keep_decimals():
 
 # --- richer formatting helpers ----------------------------------------------
 
+
 def test_human_count_abbreviates_only_big_values():
-    assert _human_count(7278) == "7,278"        # small: exact, grouped
-    assert _human_count(41120) == "41,120"      # < 100k stays exact
+    assert _human_count(7278) == "7,278"  # small: exact, grouped
+    assert _human_count(41120) == "41,120"  # < 100k stays exact
     assert _human_count(99999) == "99,999"
-    assert _human_count(100000) == "100k"       # >= 100k abbreviated
+    assert _human_count(100000) == "100k"  # >= 100k abbreviated
     assert _human_count(302343) == "302k"
     assert _human_count(1203045) == "1.2M"
 
 
 def test_grade_color_thresholds():
     assert _grade_color(0.95) == "green"
-    assert _grade_color(0.80) == "green"        # boundary inclusive
+    assert _grade_color(0.80) == "green"  # boundary inclusive
     assert _grade_color(0.70) == "yellow"
     assert _grade_color(0.60) == "yellow"
     assert _grade_color(0.55) == "red"
@@ -314,23 +328,36 @@ def test_ratio_cell_bar_length_tracks_value():
     assert _ratio_cell(0.0).count("▰") == 0 and _ratio_cell(0.0).count("▱") == 5
     assert _ratio_cell(1.0).count("▰") == 5
     assert "0.50" in _ratio_cell(0.5)
-    assert _ratio_cell(None) == "[dim]-[/dim]"   # blanks dimmed
+    assert _ratio_cell(None) == "[dim]-[/dim]"  # blanks dimmed
 
 
 def test_skew_cell_is_center_anchored_and_fills_toward_the_skewed_side():
-    assert _skew_cell(0.0) == "[dim]▱▱▰▱▱[/dim] +0.00"     # symmetric baseline: center only
-    assert _skew_cell(0.49) == "[dim]▱▱▰▱▱[/dim] +0.49"    # below the fill threshold: still center-only
-    assert _skew_cell(-1.17) == "[dim]▱▰▰▱▱[/dim] -1.17"   # left-tailed: fills toward the left
-    assert _skew_cell(-3.0) == "[dim]▰▰▰▱▱[/dim] -3.00"    # saturates at |skew|>=2
-    assert _skew_cell(3.0) == "[dim]▱▱▰▰▰[/dim] +3.00"     # right-tailed: fills toward the right
-    assert _skew_cell(None) == "[dim]-[/dim]"              # blanks dimmed, same as ratio
+    assert (
+        _skew_cell(0.0) == "[dim]▱▱▰▱▱[/dim] +0.00"
+    )  # symmetric baseline: center only
+    assert (
+        _skew_cell(0.49) == "[dim]▱▱▰▱▱[/dim] +0.49"
+    )  # below the fill threshold: still center-only
+    assert (
+        _skew_cell(-1.17) == "[dim]▱▰▰▱▱[/dim] -1.17"
+    )  # left-tailed: fills toward the left
+    assert _skew_cell(-3.0) == "[dim]▰▰▰▱▱[/dim] -3.00"  # saturates at |skew|>=2
+    assert (
+        _skew_cell(3.0) == "[dim]▱▱▰▰▰[/dim] +3.00"
+    )  # right-tailed: fills toward the right
+    assert _skew_cell(None) == "[dim]-[/dim]"  # blanks dimmed, same as ratio
 
 
 def test_leaderboard_cell_merges_score_and_metric():
-    cell = _leaderboard_cell({"leaderboard_score": 0.871, "leaderboard_metric": "AUROC"})
+    cell = _leaderboard_cell(
+        {"leaderboard_score": 0.871, "leaderboard_metric": "AUROC"}
+    )
     assert "0.871" in cell and "AUROC" in cell
     assert "green" in cell  # 0.871 -> graded green
-    assert _leaderboard_cell({"leaderboard_score": None, "leaderboard_metric": None}) == "[dim]-[/dim]"
+    assert (
+        _leaderboard_cell({"leaderboard_score": None, "leaderboard_metric": None})
+        == "[dim]-[/dim]"
+    )
 
 
 def test_display_columns_merges_leaderboard_pair():
