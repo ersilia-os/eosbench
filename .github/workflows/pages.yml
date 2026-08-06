@@ -46,3 +46,8 @@ jobs:
 
       - id: deploy
         uses: actions/deploy-pages@v4
+        with:
+          # GitHub's Pages backend has occasionally taken longer than the
+          # action's 10-minute default to confirm a deployment that had
+          # already succeeded, reporting a false failure.
+          timeout: 1200000
