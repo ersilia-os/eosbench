@@ -1,13 +1,10 @@
 # Audit — `eosbench`
 
-Package · 2026-08-06 · `main@98327be` · explicit-path · type from github-properties
-
-> [!IMPORTANT]
-> Working tree has **uncommitted changes** — findings describe the tree on disk, not the default branch.
+Package · 2026-08-06 · `main@2536a8e` · explicit-path · type from github-properties
 
 ## Verdict
 
-Since the 2026-08-06 audit: **6 fixed**, 4 unchanged.
+Since the 2026-08-06 audit: 4 unchanged.
 
 Every actionable finding from the 2026-08-06 audit has been fixed except the two the user explicitly deferred (Click migration, module splitting) and the deliberately-scoped test docstrings (names already self-documenting). Both remaining PKG-LONG-FUNCTION/PKG-BARE-EXCEPT entries are documented, considered exceptions, not oversights.
 
