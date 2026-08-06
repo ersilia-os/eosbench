@@ -1,25 +1,185 @@
 {
-  "_comment": "Curated leaderboard references for tdcommons datasets. PRECEDENCE per dataset: (1) POLARIS HUB (the TDC ADMET Benchmark Group, which Polaris mirrors; preferred over TDC's own leaderboard, which can contain errors); (2) MoleculeNet, where the dataset is the same as a MoleculeNet benchmark (hiv, clintox); (3) a single reputable/recent paper ('provider': 'literature') for datasets on no leaderboard at all. 'provider' records which of these each score came from. IMPORTANT: 'literature' entries are best-effort REFERENCES from individual papers on THAT paper's own split/metric (recorded in 'split'/'source') — they are NOT comparable to one another, to the Polaris numbers, or to eosbench's baseline. Datasets still blank have no clean dataset-specific number (the Butkiewicz HTS panel is reported as logAUC, not ROC-AUC; SARS-CoV-2, PAMPA, skin_reaction, carcinogens have no comparable AUROC). 'std' (optional) is the reported cross-seed standard deviation, where known -- for TDC ADMET Benchmark Group entries this is the std across the group's required 5 seeds ([1,2,3,4,5], per tdcommons.ai's own submission guide, not Polaris's mirror page, which doesn't show one). Not yet backfilled for every 'polaris'-provider entry; absent means not yet looked up, not zero. Keyed by tdcommons dataset slug.",
-  "_snapshot": "2026-06-16",
-  "hiv":                             {"metric": "AUROC", "value": 0.763, "split": "scaffold", "provider": "moleculenet", "source": "Wu et al. 2018 (MoleculeNet), best model; same dataset as TDC HIV"},
-  "clintox":                         {"metric": "AUROC", "value": 0.832, "split": "random",   "provider": "moleculenet", "source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg); same dataset as TDC ClinTox"},
-  "cyp1a2_veith":                    {"metric": "AUROC", "value": 0.97,  "split": "external (paper)", "provider": "literature", "source": "CYPi-DNNpredictor, JCIM 2024 (doi:10.1021/acs.jcim.3c01396), external validation"},
-  "cyp2c19_veith":                   {"metric": "AUROC", "value": 0.94,  "split": "external (paper)", "provider": "literature", "source": "CYPi-DNNpredictor, JCIM 2024 (doi:10.1021/acs.jcim.3c01396), external validation"},
-  "b3db_classification":             {"metric": "AUROC", "value": 0.96,  "split": "random (paper)",   "provider": "literature", "source": "B3DB / B3clf best model (Meng et al., Sci. Data 2021)"},
-  "herg_karim":                      {"metric": "AUROC", "value": 0.94,  "split": "external (paper)", "provider": "literature", "source": "recent ML benchmarks on the Karim et al. 2021 hERG set (~0.94-0.96)"},
-  "hlm":                             {"metric": "AUROC", "value": 0.86,  "split": "random (paper test)", "provider": "literature", "source": "Li et al., Chem. Res. Toxicol. 2022 (NCATS HLM/RLM ML), test set"},
-  "rlm":                             {"metric": "AUROC", "value": 0.84,  "split": "random (paper test)", "provider": "literature", "source": "Li et al., Chem. Res. Toxicol. 2022 (NCATS HLM/RLM ML), test set"},
-  "ames":                            {"metric": "AUROC", "value": 0.871, "std": 0.002, "split": "scaffold", "provider": "polaris", "source": "ZairaChem, Polaris TDC ADMET leaderboard"},
-  "bbb_martins":                     {"metric": "AUROC", "value": 0.924, "split": "scaffold", "provider": "polaris", "source": "MiniMol, Polaris TDC ADMET leaderboard"},
-  "bioavailability_ma":              {"metric": "AUROC", "value": 0.942, "split": "scaffold", "provider": "polaris", "source": "MiniMol, Polaris TDC ADMET leaderboard"},
-  "cyp2c9_substrate_carbonmangels":  {"metric": "AUPRC", "value": 0.474, "split": "scaffold", "provider": "polaris", "source": "MiniMol, Polaris TDC ADMET leaderboard"},
-  "cyp2c9_veith":                    {"metric": "AUPRC", "value": 0.859, "split": "scaffold", "provider": "polaris", "source": "MapLight + GNN, Polaris TDC ADMET leaderboard"},
-  "cyp2d6_substrate_carbonmangels":  {"metric": "AUPRC", "value": 0.736, "split": "scaffold", "provider": "polaris", "source": "ContextPred, Polaris TDC ADMET leaderboard"},
-  "cyp2d6_veith":                    {"metric": "AUPRC", "value": 0.790, "split": "scaffold", "provider": "polaris", "source": "MapLight + GNN, Polaris TDC ADMET leaderboard"},
-  "cyp3a4_substrate_carbonmangels":  {"metric": "AUROC", "value": 0.667, "split": "scaffold", "provider": "polaris", "source": "CFA, Polaris TDC ADMET leaderboard"},
-  "cyp3a4_veith":                    {"metric": "AUPRC", "value": 0.916, "split": "scaffold", "provider": "polaris", "source": "MapLight + GNN, Polaris TDC ADMET leaderboard"},
-  "dili":                            {"metric": "AUROC", "value": 0.956, "split": "scaffold", "provider": "polaris", "source": "MiniMol, Polaris TDC ADMET leaderboard"},
-  "herg":                            {"metric": "AUROC", "value": 0.880, "split": "scaffold", "provider": "polaris", "source": "MapLight + GNN, Polaris TDC ADMET leaderboard"},
-  "hia_hou":                         {"metric": "AUROC", "value": 0.993, "split": "scaffold", "provider": "polaris", "source": "MiniMol, Polaris TDC ADMET leaderboard"},
-  "pgp_broccatelli":                 {"metric": "AUROC", "value": 0.938, "split": "scaffold", "provider": "polaris", "source": "MapLight + GNN, Polaris TDC ADMET leaderboard"}
+  "_comment": "Curated leaderboard references for tdcommons datasets. PRECEDENCE per dataset: (1) TDC's own ADMET Benchmark Group leaderboard (tdcommons.ai), 'provider': 'tdc' -- these 13 entries were previously mislabeled 'provider': 'polaris' on the (incorrect) assumption that Polaris Hub mirrors this leaderboard; verified 2026-08-06 by reading tdcommons.ai's own per-dataset leaderboard pages directly -- none of these model names (ZairaChem, MapLight, MiniMol, CFA, ADMETrix, ...) appear among Polaris Hub's own submitted results for the matching benchmark, which is a separate, differently-populated leaderboard (see scripts/polaris_leaderboard.json, maintained by fetch_polaris_leaderboard.py, for that one); (2) MoleculeNet, where the dataset is the same as a MoleculeNet benchmark (hiv, clintox); (3) a single reputable/recent paper ('provider': 'literature') for datasets on no leaderboard at all. 'provider' records which of these each score came from. IMPORTANT: 'literature' entries are best-effort REFERENCES from individual papers on THAT paper's own split/metric (recorded in 'split'/'source') -- they are NOT comparable to one another, to the TDC numbers, or to eosbench's baseline. Datasets still blank have no clean dataset-specific number (the Butkiewicz HTS panel is reported as logAUC, not ROC-AUC; SARS-CoV-2, PAMPA, skin_reaction, carcinogens have no comparable AUROC). 'std' (optional) is the reported cross-seed standard deviation, where known -- for the 'tdc'-provider entries this is the std across the ADMET Benchmark Group's required 5 seeds ([1,2,3,4,5], per tdcommons.ai's own submission guide: 5 independent training runs on different seeded train/valid splits, scored on the SAME frozen test set each time, then averaged). 'comparable' records whether eosbench's own single-run scaffold-holdout result (train once on train, score once on test) is a fair comparison to THIS score: 'yes' = same physical test set AND a single-run statistic on both sides; 'split_only' = same physical test set, but this score is itself a multi-run average (so it's a different *kind* of number, not just a different draw); 'no' = a different test set/split entirely (cross-filled from another dataset's own copy, or a paper's own ad hoc split); 'unverified' = not independently checked either way. 'split' is normalized to exactly one of 'scaffold' / 'random' / 'external' -- 'external' means evaluated on a genuinely different validation set (different molecules entirely, not a partition of this dataset), used only by 'literature' entries so far; any paper-specific detail (which split, which test set) lives in 'source' instead, since 'provider': 'literature' already flags it as a one-off, not-cross-comparable reference. Keyed by tdcommons dataset slug.",
+  "_snapshot": "2026-08-06",
+  "hiv": {
+    "metric": "AUROC",
+    "value": 0.763,
+    "split": "scaffold",
+    "provider": "moleculenet",
+    "comparable": "no",
+    "source": "Wu et al. 2018 (MoleculeNet), best model; same dataset as TDC HIV"
+  },
+  "clintox": {
+    "metric": "AUROC",
+    "value": 0.832,
+    "split": "random",
+    "provider": "moleculenet",
+    "comparable": "no",
+    "source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg); same dataset as TDC ClinTox"
+  },
+  "cyp1a2_veith": {
+    "metric": "AUROC",
+    "value": 0.97,
+    "split": "external",
+    "provider": "literature",
+    "comparable": "no",
+    "source": "CYPi-DNNpredictor, JCIM 2024 (doi:10.1021/acs.jcim.3c01396), external validation"
+  },
+  "cyp2c19_veith": {
+    "metric": "AUROC",
+    "value": 0.94,
+    "split": "external",
+    "provider": "literature",
+    "comparable": "no",
+    "source": "CYPi-DNNpredictor, JCIM 2024 (doi:10.1021/acs.jcim.3c01396), external validation"
+  },
+  "b3db_classification": {
+    "metric": "AUROC",
+    "value": 0.96,
+    "split": "random",
+    "provider": "literature",
+    "comparable": "no",
+    "source": "B3DB / B3clf best model (Meng et al., Sci. Data 2021)"
+  },
+  "herg_karim": {
+    "metric": "AUROC",
+    "value": 0.94,
+    "split": "external",
+    "provider": "literature",
+    "comparable": "no",
+    "source": "recent ML benchmarks on the Karim et al. 2021 hERG set (~0.94-0.96)"
+  },
+  "hlm": {
+    "metric": "AUROC",
+    "value": 0.86,
+    "split": "random",
+    "provider": "literature",
+    "comparable": "no",
+    "source": "Li et al., Chem. Res. Toxicol. 2022 (NCATS HLM/RLM ML), test set"
+  },
+  "rlm": {
+    "metric": "AUROC",
+    "value": 0.84,
+    "split": "random",
+    "provider": "literature",
+    "comparable": "no",
+    "source": "Li et al., Chem. Res. Toxicol. 2022 (NCATS HLM/RLM ML), test set"
+  },
+  "ames": {
+    "metric": "AUROC",
+    "value": 0.871,
+    "std": 0.002,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "ZairaChem, TDC ADMET Benchmark Group leaderboard (5-run avg)"
+  },
+  "bbb_martins": {
+    "metric": "AUROC",
+    "value": 0.924,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "MiniMol, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.003
+  },
+  "bioavailability_ma": {
+    "metric": "AUROC",
+    "value": 0.942,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "MiniMol, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.002
+  },
+  "cyp2c9_substrate_carbonmangels": {
+    "metric": "AUPRC",
+    "value": 0.474,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "MiniMol, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.025
+  },
+  "cyp2c9_veith": {
+    "metric": "AUPRC",
+    "value": 0.859,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "MapLight + GNN, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.001
+  },
+  "cyp2d6_substrate_carbonmangels": {
+    "metric": "AUPRC",
+    "value": 0.736,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "ContextPred, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.024
+  },
+  "cyp2d6_veith": {
+    "metric": "AUPRC",
+    "value": 0.79,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "MapLight + GNN, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.001
+  },
+  "cyp3a4_substrate_carbonmangels": {
+    "metric": "AUROC",
+    "value": 0.667,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "CFA, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.019
+  },
+  "cyp3a4_veith": {
+    "metric": "AUPRC",
+    "value": 0.916,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "MapLight + GNN, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.0
+  },
+  "dili": {
+    "metric": "AUROC",
+    "value": 0.956,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "MiniMol, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.006
+  },
+  "herg": {
+    "metric": "AUROC",
+    "value": 0.88,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "MapLight + GNN, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.002
+  },
+  "hia_hou": {
+    "metric": "AUROC",
+    "value": 0.993,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "MiniMol, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.005
+  },
+  "pgp_broccatelli": {
+    "metric": "AUROC",
+    "value": 0.938,
+    "split": "scaffold",
+    "provider": "tdc",
+    "comparable": "split_only",
+    "source": "MapLight + GNN, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+    "std": 0.002
+  }
 }

@@ -10,6 +10,13 @@ Polaris-hosted TDC ADMET leaderboard, ``tdc`` for a TDC-native fallback, ``molec
 the MoleculeNet paper). Precedence for tdcommons is Polaris first, TDC as fallback — encoded
 directly in scripts/tdcommons_leaderboard.json.
 
+The ``polaris`` source's own leaderboard JSON (``polaris_leaderboard.json``) is maintained by
+``fetch_polaris_leaderboard.py``, not hand-curated: it live-fetches the current top score
+straight from the Hub, since the Polaris Hub leaderboard for a benchmark keeps gaining new
+submissions over time and is *not* the same thing as the (comparatively static)
+``tdcommons_leaderboard.json`` "polaris"-provider entries, which mirror what TDC's own ADMET
+Benchmark Group snapshot showed at curation time. Re-run that script to refresh it.
+
 Usage::
 
     python scripts/patch_leaderboard_metadata.py                 # all known sources
@@ -24,16 +31,18 @@ from pathlib import Path
 
 import _prepare_common as common
 
-TASK = "classification"
 # source -> curated leaderboard JSON (keyed by dataset/family slug)
 SOURCES = {
     "moleculenet": Path(__file__).resolve().parent / "moleculenet_leaderboard.json",
     "tdcommons": Path(__file__).resolve().parent / "tdcommons_leaderboard.json",
+    "polaris": Path(__file__).resolve().parent / "polaris_leaderboard.json",
 }
-_FIELDS = ("metric", "value", "split", "provider", "source")
+_FIELDS = ("metric", "value", "std", "split", "provider", "source", "fetched_at", "comparable")
 
 
 def _load(json_path: Path) -> dict:
+    if not json_path.exists():
+        return {}
     with open(json_path) as f:
         return {k: v for k, v in json.load(f).items() if not k.startswith("_")}
 
@@ -57,21 +66,26 @@ def _patch(meta_path: Path, fields: dict) -> bool:
 
 
 def process(source: str, json_path: Path) -> None:
+    """Patch every task (classification, regression, ...) this source has bundled data
+    for -- moleculenet's leaderboard JSON covers both, so this must not assume just one."""
     leaderboard = _load(json_path)
-    base = common.PKG_DATA_ROOT / source / TASK
-    if not base.exists():
+    source_root = common.PKG_DATA_ROOT / source
+    if not source_root.exists():
         print(f"  [{source}] no bundled data; skipping")
         return
-    families = sorted(p.name for p in base.iterdir() if (p / "metadata.json").exists())
-    n_lb = 0
-    for family in families:
-        fields = _entry_fields(leaderboard.get(family))
-        for root in (common.PKG_DATA_ROOT, common.DATA_ROOT):
-            _patch(root / source / TASK / family / "metadata.json", fields)
-        if fields["leaderboard_value"] is not None:
-            n_lb += 1
+    n_families = n_lb = 0
+    for task_dir in sorted(p for p in source_root.iterdir() if p.is_dir()):
+        task = task_dir.name
+        families = sorted(p.name for p in task_dir.iterdir() if (p / "metadata.json").exists())
+        for family in families:
+            fields = _entry_fields(leaderboard.get(family))
+            for root in (common.PKG_DATA_ROOT, common.DATA_ROOT):
+                _patch(root / source / task / family / "metadata.json", fields)
+            if fields["leaderboard_value"] is not None:
+                n_lb += 1
+        n_families += len(families)
     print(
-        f"  [{source}] patched {len(families)} families ({n_lb} with a leaderboard score)"
+        f"  [{source}] patched {n_families} families ({n_lb} with a leaderboard score)"
     )
 
 

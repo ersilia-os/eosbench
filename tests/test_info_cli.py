@@ -50,12 +50,13 @@ def test_bundled_metadata_records_leaderboard_split():
 
 
 def test_bundled_metadata_records_leaderboard_provider():
-    # Provenance: tdcommons ADMET scores come from Polaris; MoleculeNet from the paper.
+    # Provenance: tdcommons ADMET scores come from TDC's own leaderboard (a 5-run
+    # average -- see leaderboard_comparable); MoleculeNet from the paper.
     assert (
         DatasetInfo("tdcommons", "classification", "ames").metadata[
             "leaderboard_provider"
         ]
-        == "polaris"
+        == "tdc"
     )
     assert (
         DatasetInfo("moleculenet", "classification", "bbbp").metadata[

@@ -33,7 +33,10 @@
       "leaderboard_value": 0.729,
       "leaderboard_split": "scaffold",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     }
   },
   "auroc_mean": 0.9231749746963563,
@@ -43,5 +46,8 @@
   "leaderboard_split": "scaffold",
   "leaderboard_provider": "moleculenet",
   "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model",
-  "size_bytes": 36952819
+  "size_bytes": 36952819,
+  "leaderboard_std": null,
+  "leaderboard_fetched_at": null,
+  "leaderboard_comparable": "unverified"
 }

@@ -31,6 +31,7 @@ SORT_COLUMNS = [
     "leaderboard_metric",
     "leaderboard_split",
     "leaderboard_provider",
+    "leaderboard_comparable",
     "last_updated",
 ]
 
@@ -51,6 +52,7 @@ NUMERIC_COLUMNS = COUNT_COLUMNS | {
 DISPLAY_NAMES = {
     "name": "dataset",
     "n_columns": "columns",
+    "baseline": "baseline [random split]",
     "leaderboard_score": "lb_score",
     "leaderboard_metric": "lb_metric",
     "leaderboard_split": "lb_split",
@@ -234,14 +236,30 @@ def _metric_cell(col, v) -> str:
     return f"[{_grade_color(float(v))}]{text}[/]"
 
 
+# Whether a local single-run scaffold-holdout result is a fair comparison to this
+# leaderboard score (see leaderboard_comparable's docstring in dataset.get_catalog).
+_COMPARABLE_GLYPHS = {
+    "yes": "[green]✓[/green]",
+    "split_only": "[yellow]±[/yellow]",
+    "no": "[red]✗[/red]",
+    "unverified": "[dim]?[/dim]",
+}
+
+
 def _leaderboard_cell(row) -> str:
-    """Merge leaderboard_score + leaderboard_metric into one cell: '0.871 AUROC'."""
+    """Merge leaderboard_score + leaderboard_metric + leaderboard_comparable into one
+    cell: '0.871 AUROC ±' -- the trailing glyph is leaderboard_comparable (✓ same
+    split & single-run, ± same split but a multi-run average, ✗ different
+    split/test-set, ? unverified)."""
     score, metric = row.get("leaderboard_score"), row.get("leaderboard_metric")
     if _is_missing(score):
         return "[dim]-[/dim]"
     cell = f"[{_grade_color(float(score))}]{float(score):.3f}[/]"
     if not _is_missing(metric):
         cell += f" [dim]{escape(str(metric))}[/dim]"
+    glyph = _COMPARABLE_GLYPHS.get(row.get("leaderboard_comparable"))
+    if glyph:
+        cell += f" {glyph}"
     return cell
 
 
@@ -291,7 +309,9 @@ _RENDERERS = {
 _MERGES = {
     "balance": ("ratio", "skew"),                       # class balance OR target skew
     "baseline": _METRIC_COLS,                            # auroc/auprc OR rmse/r2
-    "leaderboard": ("leaderboard_score", "leaderboard_metric"),
+    # leaderboard_comparable renders as a trailing glyph on this cell rather than its own
+    # column (see _leaderboard_cell) -- kept out of the table as raw text either way.
+    "leaderboard": ("leaderboard_score", "leaderboard_metric", "leaderboard_comparable"),
 }
 _MERGE_OF = {col: key for key, group in _MERGES.items() for col in group}
 _HIDE = frozenset()  # every df column is shown
@@ -346,7 +366,7 @@ def _display_columns(df):
         key = _MERGE_OF.get(col)
         if key is not None:
             if key not in seen:
-                spec.append((key, "left", _RENDERERS[key]))
+                spec.append((DISPLAY_NAMES.get(key, key), "left", _RENDERERS[key]))
                 seen.add(key)
             continue
         header = DISPLAY_NAMES.get(col, col)
@@ -355,10 +375,12 @@ def _display_columns(df):
         spec.append((header, justify, render))
 
     # Place the label-shape cue (balance) just before the baseline metrics.
+    baseline_header = DISPLAY_NAMES.get("baseline", "baseline")
+    balance_header = DISPLAY_NAMES.get("balance", "balance")
     headers = [h for h, _, _ in spec]
-    if "baseline" in headers and "balance" in headers:
-        baseline = spec.pop(headers.index("baseline"))
-        bidx = [h for h, _, _ in spec].index("balance")
+    if baseline_header in headers and balance_header in headers:
+        baseline = spec.pop(headers.index(baseline_header))
+        bidx = [h for h, _, _ in spec].index(balance_header)
         spec.insert(bidx + 1, baseline)
     return spec
 
@@ -637,9 +659,12 @@ def main():
     )
     for header, justify, _render in spec:
         # Keep every column on one line (ellipsize if cramped); only the dataset name —
-        # the key identifier — is allowed to wrap so it's never silently truncated.
+        # the key identifier — is allowed to wrap so it's never silently truncated. Escape
+        # the header text itself: Rich treats it as markup, so a literal "[...]" in a
+        # DISPLAY_NAMES label (e.g. "baseline [random split]") would otherwise be parsed
+        # as an (invalid, silently-dropped) style tag instead of shown verbatim.
         table.add_column(
-            header,
+            escape(header),
             justify=justify,
             no_wrap=(header != "dataset"),
             overflow="ellipsis",

@@ -29,10 +29,13 @@ def test_get_catalog_returns_summary_dataframe():
         "leaderboard_metric",
         "leaderboard_split",
         "leaderboard_provider",
+        "leaderboard_comparable",
         "last_updated",
     ]
 
-    ames = catalog.loc[catalog["name"] == "ames"].iloc[0]
+    # "ames" is prepared under both tdcommons (PyTDC) and polaris (Polaris's official split);
+    # filter on source too so this test targets the tdcommons row specifically.
+    ames = catalog.loc[(catalog["name"] == "ames") & (catalog["source"] == "tdcommons")].iloc[0]
     assert ames["source"] == "tdcommons"
     assert ames["id"] == make_id("tdcommons", "ames")  # deterministic short code
     assert ames["n_tot"] == 7278
@@ -42,11 +45,13 @@ def test_get_catalog_returns_summary_dataframe():
     assert ames["auroc"] == pytest.approx(0.91, abs=0.02)
     assert ames["auprc"] == pytest.approx(0.92, abs=0.02)
     assert ames["ratio"] == pytest.approx(3974 / 7278)
-    # Leaderboard reference comes from Polaris (deterministic, curated).
+    # Leaderboard reference is TDC's own ADMET Benchmark Group leaderboard (deterministic,
+    # curated) -- a 5-run average on the same frozen split this row's own holdout uses.
     assert ames["leaderboard_metric"] == "AUROC"
     assert ames["leaderboard_score"] == pytest.approx(0.871)
     assert ames["leaderboard_split"] == "scaffold"
-    assert ames["leaderboard_provider"] == "polaris"
+    assert ames["leaderboard_provider"] == "tdc"
+    assert ames["leaderboard_comparable"] == "split_only"
 
 
 def test_mirror_dataset_materializes_expected_folder_structure(tmp_path, monkeypatch):

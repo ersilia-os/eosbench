@@ -5,7 +5,7 @@
 
 A Python package for loading molecular activity datasets used in Ersilia ML development.
 
-> **Important:** This repository is not an official benchmark. Cross-validation splits are arbitrary and were not designed to reproduce any published protocol. Performance numbers obtained here **cannot be directly compared** with results from TDC or any other benchmarking framework.
+> **Important:** This repository is not an official benchmark. The `baseline` metric (random K-fold CV) uses an arbitrary split not designed to reproduce any published protocol, and is **not comparable** to outside results. The scaffold-holdout metric (`scaffold_auroc`/`scaffold_aupr`/`scaffold_rmse`/`scaffold_r2`) is a different story for `tdcommons`/`polaris` datasets specifically — it honours those sources' own official split — but whether a given published `leaderboard` number is a fair comparison to it still varies row by row; see `eosbench catalog`'s `leaderboard` glyph or [Leaderboard references](#leaderboard-references) before treating any number here as equivalent to a paper's.
 
 ---
 
@@ -69,6 +69,16 @@ Browse everything online at **[ersilia-os.github.io/eosbench](https://ersilia-os
 
 - **tdcommons** — single-input SMILES binary-classification datasets from [Therapeutics Data Commons](https://tdcommons.ai/): ADMET properties (Ames, hERG, BBB, CYP450, …) plus HTS bioassays (SARS-CoV-2, Butkiewicz panel, HIV), spanning ~880 to ~340k molecules. Built by `scripts/prepare_tdcommons.py`
 - **MoleculeNet** — *classification*: BBBP, BACE, HIV, Tox21, ClinTox, SIDER, MUV, ToxCast. *Regression*: ESOL, FreeSolv, Lipophilicity (single-target solubility/logD/hydration) and QM8/QM9 (multi-target quantum properties). Regression sets record a RandomForest **RMSE/R²** baseline, with curated RMSE leaderboard references for the three solubility-type sets.
+- **polaris** — the 13 single-input binary-classification benchmarks from the **Polaris Hub**
+  (`polarishub.io`) under owner `tdcommons` — the same 13 ADMET datasets as above, but
+  prepared directly from Polaris rather than PyTDC, honouring Polaris's own official split
+  (verified byte-for-byte identical to `tdcommons`'s own scaffold holdout for the same
+  dataset). A deliberate, permanent second copy: it exists to carry Polaris Hub's own, genuinely
+  live leaderboard (see [Leaderboard references](#leaderboard-references)) — a different,
+  separately-populated leaderboard from TDC's own, not a mirror of it. Built by
+  `scripts/prepare_polaris.py`; Polaris also hosts 9 further ADMET *regression* benchmarks
+  under the same owner, not yet prepared here since eosbench's Polaris support only handles
+  classification so far.
 
 Datasets are organized as **families**. A family is a collection of one or more binary
 label **columns** (endpoints) over a *shared* set of molecules. Single-column sets
@@ -77,9 +87,9 @@ endpoint as a column within one family. All columns of a family share the same m
 feature matrices, and a single **conserved** train/test split — so a molecule lands on the
 same side for every column — with NaN labels where a given column is unmeasured.
 
-The vocabulary, end to end: **source** (`tdcommons`, `moleculenet`, …) → **dataset** (the family,
-e.g. `tox21`) → **column** (an endpoint, e.g. `NR-AR`); **task** is the ML problem type
-(`classification` / `regression`).
+The vocabulary, end to end: **source** (`tdcommons`, `moleculenet`, `polaris`) → **dataset**
+(the family, e.g. `tox21`) → **column** (an endpoint, e.g. `NR-AR`); **task** is the ML
+problem type (`classification` / `regression`).
 
 Dataset files (SMILES, labels, feature matrices, fold assignments) are downloaded on demand from a public S3 bucket and cached under `~/.cache/eosbench/`.
 
@@ -87,127 +97,10 @@ Dataset files (SMILES, labels, feature matrices, fold assignments) are downloade
 
 ## API
 
-The main public functions are described below.
-
----
-
-### `get_catalog`
-
-Returns a summary of all available datasets as a pandas DataFrame.
-
-By default there is **one row per family** (multi-column families collapse to a single row).
-Pass `expand=True` for **one row per column**.
-
-```python
-from eosbench import get_catalog, list_columns
-
-catalog = get_catalog()                       # one row per family (classification)
-catalog = get_catalog(task="all")             # classification + regression together
-catalog = get_catalog(source="tdcommons")     # filter by source
-catalog = get_catalog(task="regression")      # regression only
-catalog = get_catalog(expand=True)            # one row per label column
-
-list_columns("moleculenet", "tox21")          # ["NR-AR", "NR-AR-LBD", ...]
-```
-
-The metric columns depend on `task` — classification reports `auroc`/`auprc`,
-regression reports `rmse`/`r2`, and the class-balance columns (`n_pos`, `ratio`)
-appear for classification only. `task="all"` returns both in one frame with the
-union of columns (metrics that don't apply to a row are blank). The `eosbench
-catalog` CLI **defaults to `--task all`** so every dataset shows at once; pass
-`--task classification` or `--task regression` to narrow it.
-
-Columns (collapsed, classification):
-
-| column | description |
-|--------|-------------|
-| `id` | deterministic short eosbench identifier (e.g. `bed0959b`); `get_catalog(expand=True)` gives a per-column id. Fetch with `eosbench fetch --id <id>` |
-| `name` | family name (shown as `dataset` in the CLI table) |
-| `source` | `"tdcommons"`, `"moleculenet"` (CLI renders `task` as a `cls`/`reg` tag) |
-| `task` | `"classification"` or `"regression"` |
-| `n_columns` | number of label columns in the family |
-| `n_tot` | total molecules (or samples for single-column) |
-| `size` | full on-disk size of the dataset including the fingerprint matrices (e.g. `126 MB`) |
-| `n_pos` | positive samples (classification only; blank for regression) |
-| `auroc` | mean baseline AUROC (averaged over columns) |
-| `auprc` | mean baseline AUPRC (averaged over columns) |
-| `ratio` | positive class ratio, `n_pos / n_tot` (classification only) |
-| `leaderboard_score` | best published result, where known (the CLI merges this with the metric into one `leaderboard` column, e.g. `0.871 AUROC`) |
-| `leaderboard_metric` | metric `leaderboard_score` is measured in, e.g. `AUROC` |
-| `last_updated` | date the family was last prepared (ISO `YYYY-MM-DD`) |
-
-In the **CLI table** the task-specific columns are merged so a mixed classification/regression
-view stays uniform: `ratio`+`skew` render as one task-aware `balance` column (a class-balance
-bar for classification, a center-anchored skewness bar for regression), and the metric columns
-render as one `baseline` column (`AUROC/AUPRC` or `RMSE/R²`). For regression, `skew` is the
-target-distribution analog of `ratio`.
-
-For `task="regression"` the `auroc`/`auprc` columns are replaced by `rmse`/`r2`
-and `n_pos`/`ratio` are omitted. With `expand=True` the frame has one row per
-column: `name` (family), `column` (endpoint), `n_tot`, the task metrics, the
-leaderboard columns, and `last_updated` (plus `n_pos`/`ratio` for classification).
-
-> **What the metrics mean:** `auroc`/`auprc` (and `rmse`/`r2`) are a **RandomForest
-> baseline averaged over random K-fold cross-validation** — a reference floor for
-> "how hard is this dataset," not the best published model. The
-> `leaderboard_score`/`leaderboard_metric` columns *are* the best published model
-> (MoleculeNet, and `tdcommons` ADMET tasks sourced from Polaris; blank where unknown).
-
----
-
-### `load_dataset`
-
-Downloads (if needed) and returns a dataset ready for model training.
-
-```python
-from eosbench import load_dataset
-
-dataset = load_dataset("tdcommons", "ames", featurization="morgan")
-```
-
-**Arguments:**
-
-| argument | values | description |
-|----------|--------|-------------|
-| `source` | `"tdcommons"`, `"moleculenet"` | dataset source |
-| `dataset` | e.g. `"ames"`, `"tox21"` | family name |
-| `featurization` | `"morgan"`, `"rdkit"`, `None` | feature representation; `None` returns raw SMILES |
-| `task` | `"classification"`, `"regression"` | ML task type; defaults to `"classification"` |
-| `split` | `"random"`, `"scaffold"` | `"random"` (default) gives K-fold CV; `"scaffold"` gives a single predefined train/test holdout (where available) |
-| `column` | e.g. `"NR-AR"` | which label column of a multi-column family to load; `None` (default) picks the sole column of a single-column family and raises (listing columns) for a multi-column one |
-
-```python
-# a multi-column family: pick the endpoint, rows unlabeled for that column are dropped
-dataset = load_dataset("moleculenet", "tox21", column="NR-AR", split="scaffold")
-```
-
-```python
-# random K-fold cross-validation (default)
-dataset = load_dataset("moleculenet", "bbbp", featurization="morgan", split="random")
-for train_idx, test_idx in dataset.split():   # one pair per fold
-    ...
-
-# predefined scaffold holdout
-dataset = load_dataset("moleculenet", "bbbp", featurization="morgan", split="scaffold")
-train_idx, test_idx = dataset.split[0]         # a single train/test pair
-```
-
-**Returns** a `Dataset` object with:
-
-- `dataset.X` — NumPy array or list of SMILES strings if `featurization=None`; shapes: `(n, 2048)` for `morgan`, `(n, 217)` for `rdkit`
-- `dataset.y` — NumPy array of labels, shape `(n,)`
-- `dataset.split` — cross-validation splits (iterable and indexable)
-- `dataset.metadata` — dict with dataset statistics
-
-```python
-# iterate over folds
-for train_idx, test_idx in dataset.split:
-    X_train, X_test = dataset.X[train_idx], dataset.X[test_idx]
-    y_train, y_test = dataset.y[train_idx], dataset.y[test_idx]
-
-# or index directly
-train_idx, test_idx = dataset.split[0]
-```
+`eosbench` also exposes a small Python API (`get_catalog`, `load_dataset`, `list_columns`)
+mirroring the CLI below, used in the [How to use](#how-to-use) example above. It isn't fully
+documented in this README yet — for now, the CLI is the more complete reference, so prefer it
+for browsing and fetching datasets.
 
 ---
 
@@ -218,14 +111,83 @@ train_idx, test_idx = dataset.split[0]
 ### `eosbench catalog`
 
 Print a table of all available datasets with metadata. The table adapts to the
-task: classification shows `auroc`/`auprc` (plus `n_pos`/`ratio`), regression
-shows `rmse`/`r2`. Counts are shown as grouped integers (e.g. `12,665`).
+task, and counts are shown as grouped integers (e.g. `12,665`).
 
 ```bash
 eosbench catalog                                  # all sources
 eosbench catalog --source tdcommons                     # filter by source
 eosbench catalog --task regression --sort_by rmse # regression sets, lowest RMSE first
 ```
+
+Columns:
+
+| column | meaning |
+|--------|---------|
+| `id` | deterministic 8-character identifier (hash of source+dataset); fetch directly with `eosbench fetch --id <id>` |
+| `dataset` | family name, e.g. `ames`, `tox21` (the underlying field is `name`; sort with `--sort_by name`) |
+| `source` | registry the data comes from, e.g. `tdcommons`, `moleculenet`, `polaris` |
+| `task` | `cls` (classification) or `reg` (regression) |
+| `columns` | number of label columns (endpoints) sharing this family's molecules and split; `1` for single-label sets |
+| `n_tot` | total samples (molecule count, for multi-column families) |
+| `size` | full on-disk footprint including the feature matrices, e.g. `126 MB` |
+| `n_pos` | positive-class samples — classification only, blank for regression |
+| `balance` | task-aware label-shape cue: a class-balance bar + `n_pos/n_tot` ratio for classification, or a skewness bar for regression (unbounded, saturates past \|skew\|≥2) |
+| `baseline` | RandomForest baseline averaged over random K-fold CV — `AUROC/AUPRC` for classification, `RMSE/R²` for regression. A reference floor for "how hard is this dataset," **not** the best published model |
+| `leaderboard` | best *published* result and its metric where known, e.g. `0.871 AUROC ±`; blank when no reference exists. The trailing glyph is the comparability signal explained below |
+| `lb_split` | the split that published `leaderboard` score was computed on: `scaffold`, `random`, or `external` (evaluated on a genuinely different validation set, not a partition of this dataset at all) — not necessarily this row's own split; see the glyph below for whether it actually matches |
+| `lb_provider` | where the `leaderboard` score came from: `tdc` (TDC's own ADMET Benchmark Group leaderboard, on `tdcommons` rows), `polaris` (Polaris Hub's own leaderboard, on `polaris` rows), `moleculenet` (MoleculeNet's own leaderboard — on its own rows, or cross-filled onto a `tdcommons` row covering the same assay), or `literature` for a single-paper reference |
+| `last_updated` | date this family's metadata was last (re)built, `YYYY-MM-DD` |
+
+> **Can I directly compare my own result to the `leaderboard` number in this row?** Not
+> always — even when it's the same test set. The trailing glyph on `leaderboard` answers
+> this directly, per row:
+>
+> | glyph | meaning |
+> |-------|---------|
+> | ✓ `yes` | same test set as this row's own scaffold holdout, **and** the published score is a single evaluation, same as eosbench's own `scaffold_auroc` (one model, fit once on train, scored once on test) — directly comparable |
+> | ± `split_only` | same test set, but the published score is itself a **multi-run average** (e.g. TDC requires 5 seeded runs, averaged ± std) — a different *kind* of number, not just a different draw. A single run of yours can land above or below a 5-run mean by chance even on identical data |
+> | ✗ `no` | a genuinely different test set/split — cross-filled from another dataset's own copy (e.g. MoleculeNet's), or a paper's own ad hoc split |
+> | ? `unverified` | not independently checked either way — don't assume it matches |
+>
+> Why this needed spelling out — the actual trail, since it wasn't obvious at first:
+>
+> - **`tdcommons/ames`** → `leaderboard: 0.871 AUROC ±`, `lb_split: scaffold`, `lb_provider:
+>   tdc`. That `0.871` is ZairaChem's entry on **TDC's own** ADMET Benchmark Group
+>   leaderboard (`tdcommons.ai`) — not something read off Polaris Hub, despite this project
+>   once assuming otherwise (`lb_provider` used to say `polaris` here; fixed after checking
+>   TDC's leaderboard page directly, where ZairaChem's `0.871 ± 0.002` matches exactly, and
+>   confirming ZairaChem never appears among Polaris Hub's own submitted results for this
+>   benchmark). TDC's leaderboard **requires 5 independent training runs** (different seeded
+>   train/valid splits, same frozen test set each time) and reports the mean ± std across
+>   them — so `0.871` is a 5-run average, not a single evaluation. The test set itself *is*
+>   the same one eosbench's own `tdcommons/ames` (and `polaris/ames`) scaffold holdout uses —
+>   verified byte-for-byte, every molecule and split assignment identical — hence `±`, not
+>   `✗`: same data, different statistic.
+> - **`polaris/ames`** (the same underlying dataset, prepared directly from Polaris rather
+>   than PyTDC) → `leaderboard: 0.877 AUROC ✓`, `lb_split: scaffold`, `lb_provider: polaris`.
+>   This is a genuinely different, separate leaderboard — Polaris Hub's own live results for
+>   its `tdcommons/ames` benchmark artifact, fetched by `fetch_polaris_leaderboard.py` (see
+>   `leaderboard_fetched_at`). Its submitter roster doesn't overlap with TDC's leaderboard at
+>   all (no ZairaChem, no MiniMol — different models entirely). Polaris's own result schema
+>   has no field for a run count or std at all: a submission is always one reported number,
+>   same as eosbench's single-run `scaffold_auroc` — hence `✓`, on the same (verified
+>   identical) test set as the `tdcommons` row above.
+> - **`tdcommons/clintox`** → `leaderboard: 0.832 AUROC ✗`, `lb_split: random`, `lb_provider:
+>   moleculenet`. ClinTox also exists as a MoleculeNet benchmark, so eosbench cross-fills
+>   MoleculeNet's best published score onto this row — but that's *MoleculeNet's own* split
+>   on *MoleculeNet's own* copy of the data, not this row's. Same assay, different partition.
+> - **`moleculenet/bace`** → `leaderboard: 0.806 AUROC ?`. This is BACE's *own* source citing
+>   its *own* paper's leaderboard number — but eosbench computes its own scaffold split for
+>   MoleculeNet families rather than honouring a frozen official one (unlike
+>   tdcommons/polaris), and whether that matches Wu et al.'s original split hasn't been
+>   independently checked. `?`, not `✓`, until it is.
+>
+> The metric itself also varies row to row — most are `AUROC`, but e.g.
+> `tdcommons/cyp2c9_substrate_carbonmangels` reports `0.474 AUPRC`, because that's the metric
+> its own reference used. Compare `leaderboard` only within a row, never across rows.
+
+`--expand` swaps `columns`/`n_pos` for one row per label `column` instead of per family.
+The footer (`N families · M label columns`) counts across every row shown.
 
 Besides `--source`/`--task`/`--expand`, the catalog can be filtered, sorted and
 limited:
@@ -257,29 +219,42 @@ Output:
 
 ```
                          tdcommons/ames
-┌────────────────────┬──────────────────────────────────────────┐
-│ source             │ tdcommons                                │
-│ dataset            │ ames                                     │
-│ task               │ classification                           │
-│ n_molecules        │ 7278                                     │
-│ n_columns          │ 1                                        │
-│ leaderboard        │ 0.8710 (AUROC)                           │
-│ leaderboard_split  │ scaffold                                 │
-│ leaderboard_source │ ZairaChem, Polaris TDC ADMET leaderboard │
-│ last_updated       │ 2026-06-16                               │
-└────────────────────┴──────────────────────────────────────────┘
-                                  columns
+┌────────────────────────┬───────────────────────────────────────────────┐
+│ id                     │ bed0959b                                     │
+│ source                 │ tdcommons                                    │
+│ dataset                │ ames                                         │
+│ task                   │ classification                               │
+│ n_molecules            │ 7278                                         │
+│ n_columns              │ 1                                            │
+│ leaderboard            │ 0.8710 ± 0.0020 (AUROC)                      │
+│ leaderboard_split      │ scaffold                                     │
+│ leaderboard_provider   │ tdc                                          │
+│ leaderboard_comparable │ split_only                                   │
+│ leaderboard_source     │ ZairaChem, TDC ADMET Benchmark Group         │
+│                        │ leaderboard (5-run avg)                      │
+│ last_updated           │ 2026-08-03                                   │
+└────────────────────────┴───────────────────────────────────────────────┘
+                             columns
 ┏━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━ … ━┓
 ┃ column ┃ n    ┃ pos  ┃ neg  ┃ auroc (random)  ┃ auprc (random)  ┃     ┃
 ┡━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━ … ━┩
-│ ames   │ 7278 │ 3974 │ 3304 │ 0.9091 ± 0.0070 │ 0.9199 ± 0.0066 │ …   │
+│ ames   │ 7278 │ 3974 │ 3304 │ 0.9090 ± 0.0070 │ 0.9199 ± 0.0067 │ …   │
 └────────┴──────┴──────┴──────┴─────────────────┴─────────────────┴─ … ─┘
-auroc/auprc are a RandomForest baseline (reference floor, not the best
-published model); the leaderboard line is the best published model (Polaris).
+auroc/auprc are a RandomForest baseline (a reference floor, not the best
+published model). 'random split' = mean over random K-fold cross-validation;
+'scaffold split' = a single Bemis–Murcko scaffold holdout.
 ```
 
+`leaderboard_comparable` is the same signal shown as a glyph in `eosbench catalog` —
+here it's spelled out (`split_only`: TDC's `0.871` is a 5-run average on the same test
+set eosbench's own `scaffold_auroc` uses, not a single evaluation like eosbench's own —
+see [Leaderboard references](#leaderboard-references)). Running the same command with
+`--source polaris --dataset ames` instead shows a *different*, genuinely-live leaderboard
+number (`leaderboard_comparable: yes`, `leaderboard_fetched_at: 2026-08-06`) for the
+identical underlying molecules — two separate leaderboards, not two views of one.
+
 Every dataset is a **family**, so `info` shows a summary plus a per-column table
-(`tdcommons` and `moleculenet` ADMET tasks are 1-column families).
+(`tdcommons`/`polaris` ADMET tasks and most `moleculenet` sets are 1-column families).
 
 For a multi-column family, `eosbench info` prints a summary plus a per-column
 table (with descriptions truncated to fit). To see **one column's full,
@@ -306,7 +281,7 @@ eosbench fetch --source tdcommons --dataset ames --from_dir data
 | argument | default | description |
 |----------|---------|-------------|
 | `--id` | — | eosbench identifier; resolves source/dataset/task automatically (use instead of `--source`/`--dataset`) |
-| `--source` | required* | `tdcommons` or `moleculenet` (*not needed with `--id`) |
+| `--source` | required* | `tdcommons`, `moleculenet`, or `polaris` (*not needed with `--id`) |
 | `--dataset` | required* | dataset name, e.g. `ames` (*not needed with `--id`) |
 | `--featurization` | `morgan` | `morgan`, `rdkit`, or `none` |
 | `--output_dir` | `.` | root folder to write into |
@@ -363,24 +338,41 @@ For each set this writes **one family**:
   reference and a `last_updated` date in `metadata.json`. Use `--no_baseline` to skip the
   baseline (much faster for large families like ToxCast/MUV).
 
-To add Polaris datasets (requires a Polaris Hub login):
+To add Polaris datasets:
 
 ```bash
 pip install -e ".[prepare-polaris]"
-polaris login                                              # one-time, cached token
 python scripts/prepare_polaris.py                          # auto-discover all qualifying benchmarks
-python scripts/prepare_polaris.py --datasets polaris/some-benchmark
+python scripts/prepare_polaris.py --datasets tdcommons/ames
 python scripts/prepare_polaris.py --limit 5 --no_baseline  # quick pass
 ```
 
-This enumerates Polaris Hub benchmarks and keeps the **single-input, binary-classification**
-ones (multi-input, regression, and multiclass benchmarks are skipped, each logged with a
-reason). Single-target benchmarks become 1-column families; single-input multi-target
-benchmarks become multi-column families. Polaris hides test labels only behind its split API —
-the labels live in the underlying dataset table, which the script reads directly — and unlike
-MoleculeNet the `scaffold_split` column carries Polaris's **official** train/test split
-(`scaffold_split_method: "polaris"`) rather than a computed scaffold split; a random K-fold is
-added alongside.
+No Polaris Hub login is needed for this — listing benchmarks and loading their datasets/splits
+are public, unauthenticated reads (a login is only needed for *writing* results back to the
+Hub, which nothing here does). This enumerates Polaris Hub benchmarks and keeps the
+**single-input, binary-classification** ones (multi-input, regression, and multiclass
+benchmarks are skipped, each logged with a reason). Single-target benchmarks become 1-column
+families; single-input multi-target benchmarks become multi-column families. Polaris hides
+test labels only behind its split API — the labels live in the underlying dataset table, which
+the script reads directly — and unlike MoleculeNet the `scaffold_split` column carries
+Polaris's **official** train/test split (`scaffold_split_method: "polaris"`) rather than a
+computed scaffold split; a random K-fold is added alongside.
+
+In practice, the Hub's `tdcommons` owner mirrors the entire **TDC ADMET Benchmark Group** — 22
+benchmarks total (verified by listing them directly), 13 single-input binary-classification
+(the ones eosbench currently prepares — see [Datasets](#datasets)) and 9 regression (not yet
+prepared here). For each of those 13, Polaris's own official split is **verified
+byte-for-byte identical** to the frozen split `tdcommons`'s own `prepare_tdcommons.py` honours
+for the same dataset (same molecules, same train/test assignment) — the two sources end up
+describing the same underlying test set through two different pipelines. What they do *not*
+share is a leaderboard: see [Leaderboard references](#leaderboard-references) for why Polaris's
+own live leaderboard for these benchmarks is a completely separate thing from TDC's.
+
+Unlike `prepare_tdcommons.py`/`prepare_moleculenet.py`, `prepare_polaris.py` itself attaches
+**no** leaderboard reference at prep time (it always passes `leaderboard=None`) — run
+`scripts/fetch_polaris_leaderboard.py` afterwards to fetch and attach Polaris's own live
+leaderboard scores (it re-syncs `metadata.json` in the same run, no separate patch step
+needed).
 
 To add TDC (Therapeutics Data Commons) datasets:
 
@@ -411,10 +403,12 @@ assembled union) and get eosbench's own computed Murcko scaffold split instead
 at all, since it's fully deterministic given the molecule set. A random K-fold CV is added
 alongside either way.
 
-Leaderboard references are sourced with a clear precedence — **Polaris** (mirroring the TDC
-ADMET Benchmark Group, preferred over TDC's own leaderboard, which can contain errors), then
-a same-assay **MoleculeNet** cross-fill, then a single **literature** reference as a last
-resort. See [Leaderboard references](#leaderboard-references) below.
+Leaderboard references for `tdcommons` datasets are sourced with a clear precedence — **TDC's
+own** ADMET Benchmark Group leaderboard first, then a same-assay **MoleculeNet** cross-fill,
+then a single **literature** reference as a last resort. The `polaris` source instead carries
+Polaris Hub's own, separately-fetched leaderboard. See
+[Leaderboard references](#leaderboard-references) below for the full picture, including which
+of these a local result is actually comparable to.
 
 Files are written to `data/{source}/classification/{family}/` (one multi-column `data.csv`,
 one `folds.csv`, one feature matrix per featurizer) and a copy of `metadata.json` is bundled
@@ -435,28 +429,59 @@ train/test split (like Polaris) pass it via `prepare_family(..., holdout=..., ho
 
 ### Leaderboard references
 
-The `leaderboard_score`/`leaderboard_metric`/`leaderboard_split`/`leaderboard_provider`
-columns record the best **published** result per dataset (distinct from the RandomForest
-baseline). `leaderboard_std` — the reported cross-seed standard deviation, where known — is
-also recorded in `metadata.json` (currently sparse: only `ames`; not a catalog column). These
-come from curated snapshots:
+The `leaderboard_score`/`leaderboard_metric`/`leaderboard_split`/`leaderboard_provider`/
+`leaderboard_comparable` columns record the best **published** result per dataset (distinct
+from the RandomForest `baseline`). `leaderboard_std` — the reported cross-seed standard
+deviation, where known — and `leaderboard_fetched_at` — when a *live-fetched* score was
+captured — are also recorded in `metadata.json` (not catalog columns). These come from
+curated JSONs under `scripts/`:
 
 - **MoleculeNet** — `scripts/moleculenet_leaderboard.json`, applied at prep time by
-  `prepare_moleculenet.py`.
+  `prepare_moleculenet.py`. **Manual only** — there's no live-fetch script for this one, unlike
+  the two below: `moleculenet.org` currently returns HTTP 404 on both its root and dataset
+  pages (checked 2026-08-06 — looks rebuilt/repurposed, not the original DeepChem site), so
+  there's nothing to scrape even if it were worth automating. It wouldn't be, either: this
+  "leaderboard" is a fixed set of best-model numbers from one 2018 paper, not a live, growing
+  one like the two below — nothing new would show up on a re-fetch even if the site came back.
+  Update the JSON by hand (new paper, better score) if needed. Every entry is `provider:
+  moleculenet` (the dataset's own paper) and `comparable: unverified` — eosbench computes its
+  own scaffold/random split for MoleculeNet families rather than honouring an official frozen
+  one, and that hasn't been independently checked against the original paper's split.
 - **tdcommons** — `scripts/tdcommons_leaderboard.json`, applied at prep time by
-  `prepare_tdcommons.py` (and patchable after the fact with `scripts/patch_leaderboard_metadata.py`).
-  Each entry records a **`provider`** giving its precedence, and a **`split`** describing what
-  split *that reference's own score* was computed on — for a cross-filled entry (`provider`
-  other than the dataset's own source) this describes a different dataset/split lineage
-  entirely, not the row it's attached to:
-  - `polaris` — the **Polaris Hub**'s mirror of the TDC ADMET Benchmark Group (preferred over
-    TDC's own leaderboard, which can contain errors); the 13 ADMET classification tasks.
-  - `moleculenet` — for datasets that are the *same* as a MoleculeNet benchmark (`hiv`, `clintox`).
+  `prepare_tdcommons.py`. Mixed provenance — three of its `provider` values are hand-curated
+  and only patchable after the fact (`scripts/patch_leaderboard_metadata.py`), but the fourth
+  is now genuinely live-fetched:
+  - `tdc` — **TDC's own** ADMET Benchmark Group leaderboard (`tdcommons.ai`), a 5-independent-run
+    average per TDC's own submission guide; the 13 ADMET classification tasks. Live-fetched by
+    `scripts/fetch_tdc_leaderboard.py` (re-run to refresh; syncs `metadata.json` in the same
+    run) — TDC's leaderboard gains real new submissions over time via its own Google-Form
+    process, unlike MoleculeNet's. (Previously mislabeled `polaris` here, on the incorrect
+    assumption that Polaris Hub mirrors this leaderboard — checked directly against
+    `tdcommons.ai`'s own per-dataset pages and against Polaris Hub's actual submitted results
+    on 2026-08-06: no overlap in model names at all.) `comparable: split_only` — same frozen
+    test set as this row's own scaffold holdout (verified byte-for-byte), but a multi-run
+    average, not a single evaluation. `fetch_tdc_leaderboard.py` only ever touches these 13
+    entries (the ones it finds classified `Binary` on TDC's own ADMET Benchmark Group pages);
+    the `moleculenet`/`literature` entries below aren't part of that group at all, so they're
+    untouched by every run and stay purely hand-curated.
+  - `moleculenet` — for datasets that are the *same* as a MoleculeNet benchmark (`hiv`,
+    `clintox`); hand-curated, same caveats as MoleculeNet's own entries above.
+    `comparable: no` — MoleculeNet's own copy/split, not this row's.
   - `literature` — a single reputable/recent paper, for datasets on no leaderboard at all
-    (`cyp1a2_veith`, `cyp2c19_veith`, `b3db_classification`, `herg_karim`, `hlm`, `rlm`).
-    **These are references on each paper's own split/metric — not comparable** to one another,
-    to the Polaris numbers, or to eosbench's baseline; the `split` and `source` fields record
-    the provenance.
+    (`cyp1a2_veith`, `cyp2c19_veith`, `b3db_classification`, `herg_karim`, `hlm`, `rlm`);
+    hand-curated. **These are references on each paper's own split/metric — not comparable**
+    (`comparable: no`) to one another, to the TDC numbers, or to eosbench's baseline; the
+    `split` and `source` fields record the provenance.
+- **polaris** — `scripts/polaris_leaderboard.json`, maintained by `scripts/fetch_polaris_leaderboard.py`
+  (re-run it to refresh; it also re-syncs `metadata.json` in the same run). This is the
+  genuinely-live Polaris Hub leaderboard for its own `tdcommons/*` benchmark artifacts — a
+  **different, separately-populated leaderboard** from TDC's own (no overlap in submitters),
+  fetched by parsing the public benchmark page's embedded results (there's no anonymous,
+  documented API for this — see the script's docstring; `fetch_tdc_leaderboard.py` needs no
+  such trick, since TDC's own pages are plain server-rendered HTML tables). Always `provider:
+  polaris`, `comparable: yes` — Polaris's result schema has no run-count/std field at all, so a
+  submission is always a single number, same statistical kind as eosbench's own
+  `scaffold_auroc`, on the same test set as the matching `tdcommons` row.
 
   Datasets with no clean dataset-specific number stay blank (the Butkiewicz HTS panel is
   reported as logAUC rather than ROC-AUC; SARS-CoV-2, PAMPA, `skin_reaction`,

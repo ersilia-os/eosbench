@@ -1,0 +1,120 @@
+{
+  "_comment": "Live-fetched Polaris Hub leaderboard top scores for the `polaris` source's tdcommons-mirror benchmarks. Maintained by fetch_polaris_leaderboard.py -- do not hand-edit; re-run that script to refresh. Each entry's 'fetched_at' records when THAT score was captured; the Hub leaderboard gains new submissions over time, so re-run periodically rather than treating this as a one-time snapshot.",
+  "ames": {
+    "metric": "AUROC",
+    "value": 0.8765,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "bbb-martins": {
+    "metric": "AUROC",
+    "value": 0.9332,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "bioavailability-ma": {
+    "metric": "AUROC",
+    "value": 0.7343,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "cyp2c9-substrate-carbonmangels": {
+    "metric": "AUPRC",
+    "value": 0.4782,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "cyp2c9-veith": {
+    "metric": "AUPRC",
+    "value": 0.8948,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "cyp2d6-substrate-carbonmangels": {
+    "metric": "AUPRC",
+    "value": 0.7318,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "cyp2d6-veith": {
+    "metric": "AUPRC",
+    "value": 0.8015,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "cyp3a4-substrate-carbonmangels": {
+    "metric": "AUROC",
+    "value": 0.6958,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "cyp3a4-veith": {
+    "metric": "AUPRC",
+    "value": 0.9192,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "dili": {
+    "metric": "AUROC",
+    "value": 0.9496,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "herg": {
+    "metric": "AUROC",
+    "value": 0.892,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "hia-hou": {
+    "metric": "AUROC",
+    "value": 0.9901,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  },
+  "pgp-broccatelli": {
+    "metric": "AUROC",
+    "value": 0.954,
+    "split": "scaffold",
+    "provider": "polaris",
+    "comparable": "yes",
+    "source": "next-size-adjust, live Polaris Hub leaderboard",
+    "fetched_at": "2026-08-06"
+  }
+}

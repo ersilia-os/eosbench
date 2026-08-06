@@ -31,17 +31,23 @@
       "scaffold_test_negatives": 474,
       "leaderboard_metric": "AUROC",
       "leaderboard_value": 0.84,
-      "leaderboard_split": "random (paper test)",
+      "leaderboard_split": "random",
       "leaderboard_provider": "literature",
-      "leaderboard_source": "Li et al., Chem. Res. Toxicol. 2022 (NCATS HLM/RLM ML), test set"
+      "leaderboard_source": "Li et al., Chem. Res. Toxicol. 2022 (NCATS HLM/RLM ML), test set",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "no"
     }
   },
   "auroc_mean": 0.8536474942725055,
   "aupr_mean": 0.8899973847384842,
   "leaderboard_metric": "AUROC",
   "leaderboard_value": 0.84,
-  "leaderboard_split": "random (paper test)",
+  "leaderboard_split": "random",
   "leaderboard_provider": "literature",
   "leaderboard_source": "Li et al., Chem. Res. Toxicol. 2022 (NCATS HLM/RLM ML), test set",
-  "size_bytes": 101343297
+  "size_bytes": 101343297,
+  "leaderboard_std": null,
+  "leaderboard_fetched_at": null,
+  "leaderboard_comparable": "no"
 }

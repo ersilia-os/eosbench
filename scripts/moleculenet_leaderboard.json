@@ -1,10 +1,13 @@
 {
-  "_comment": "Curated fallback for MoleculeNet leaderboard metrics, used when scraping moleculenet.org fails. Values are representative best-model test scores from Wu et al. 2018 (MoleculeNet, Chem. Sci.) and the DeepChem benchmark; treat as references, not ground truth. 'split' records the split MoleculeNet recommends/reports for that set (scaffold for BBBP/BACE/HIV, random for the rest). Keyed by dataset family.",
+  "_fetch_method": "MANUAL ONLY -- unlike tdcommons_leaderboard.json (partly) and polaris_leaderboard.json (fully), nothing in this file is live-fetched. prepare_moleculenet.py's scrape_leaderboard() is a deliberate no-op stub: moleculenet.org returned HTTP 404 on both its root and dataset pages when checked 2026-08-06 (looks rebuilt/repurposed, not the original DeepChem site), so there is currently nothing to scrape. Even if the site comes back, its 'leaderboard' is a fixed set of best-model numbers from one 2018 paper, not a live, growing leaderboard like TDC's or Polaris's -- there would be nothing new to re-fetch periodically. Update these values by hand (new paper, better score) and bump '_snapshot' if you do.",
+  "_comment": "Curated fallback for MoleculeNet leaderboard metrics, used when scraping moleculenet.org fails. Values are representative best-model test scores from Wu et al. 2018 (MoleculeNet, Chem. Sci.) and the DeepChem benchmark; treat as references, not ground truth. 'split' records the split MoleculeNet recommends/reports for that set (scaffold for BBBP/BACE/HIV, random for the rest). 'comparable': 'unverified' on every entry -- eosbench computes its own scaffold/random split for MoleculeNet families (see prepare_moleculenet.py) rather than honouring an official frozen split the way tdcommons/polaris do, and this hasn't been independently checked against Wu et al.'s own split the way the tdcommons/polaris one was (verified byte-for-byte); don't assume it's the same test set. Keyed by dataset family.",
+  "_snapshot": "2026-08-06",
   "bbbp": {
     "metric": "AUROC",
     "value": 0.729,
     "split": "scaffold",
     "provider": "moleculenet",
+    "comparable": "unverified",
     "source": "Wu et al. 2018 (MoleculeNet), best model"
   },
   "bace": {
@@ -12,6 +15,7 @@
     "value": 0.806,
     "split": "scaffold",
     "provider": "moleculenet",
+    "comparable": "unverified",
     "source": "Wu et al. 2018 (MoleculeNet), best model"
   },
   "hiv": {
@@ -19,6 +23,7 @@
     "value": 0.763,
     "split": "scaffold",
     "provider": "moleculenet",
+    "comparable": "unverified",
     "source": "Wu et al. 2018 (MoleculeNet), best model"
   },
   "tox21": {
@@ -26,6 +31,7 @@
     "value": 0.829,
     "split": "random",
     "provider": "moleculenet",
+    "comparable": "unverified",
     "source": "Wu et al. 2018 (MoleculeNet), best model (12-task avg)"
   },
   "clintox": {
@@ -33,6 +39,7 @@
     "value": 0.832,
     "split": "random",
     "provider": "moleculenet",
+    "comparable": "unverified",
     "source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg)"
   },
   "sider": {
@@ -40,6 +47,7 @@
     "value": 0.638,
     "split": "random",
     "provider": "moleculenet",
+    "comparable": "unverified",
     "source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
   },
   "muv": {
@@ -47,6 +55,7 @@
     "value": 0.184,
     "split": "random",
     "provider": "moleculenet",
+    "comparable": "unverified",
     "source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
   },
   "toxcast": {
@@ -54,6 +63,7 @@
     "value": 0.716,
     "split": "random",
     "provider": "moleculenet",
+    "comparable": "unverified",
     "source": "Wu et al. 2018 (MoleculeNet), best model (617-task avg)"
   },
   "esol": {
@@ -61,6 +71,7 @@
     "value": 0.58,
     "split": "random",
     "provider": "moleculenet",
+    "comparable": "unverified",
     "source": "Wu et al. 2018 (MoleculeNet), best model"
   },
   "freesolv": {
@@ -68,6 +79,7 @@
     "value": 1.15,
     "split": "random",
     "provider": "moleculenet",
+    "comparable": "unverified",
     "source": "Wu et al. 2018 (MoleculeNet), best model"
   },
   "lipophilicity": {
@@ -75,6 +87,7 @@
     "value": 0.655,
     "split": "random",
     "provider": "moleculenet",
+    "comparable": "unverified",
     "source": "Wu et al. 2018 (MoleculeNet), best model"
   }
 }

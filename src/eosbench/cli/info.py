@@ -202,11 +202,20 @@ def _leaderboard_rows(meta: dict) -> list[tuple[str, str]]:
     if value is None and metric is None:
         return []
     score = f"{value:.4f}" if isinstance(value, (int, float)) else "-"
+    std = meta.get("leaderboard_std")
+    if isinstance(std, (int, float)):
+        score += f" ± {std:.4f}"
     rows = [("leaderboard", f"{score} ({metric})" if metric else score)]
     if meta.get("leaderboard_split"):
         rows.append(("leaderboard_split", str(meta["leaderboard_split"])))
     if meta.get("leaderboard_provider"):
         rows.append(("leaderboard_provider", str(meta["leaderboard_provider"])))
+    if meta.get("leaderboard_comparable"):
+        # Whether a local single-run scaffold_auroc is a fair comparison to the score
+        # above -- see README's "Leaderboard references" for what each verdict means.
+        rows.append(("leaderboard_comparable", str(meta["leaderboard_comparable"])))
+    if meta.get("leaderboard_fetched_at"):
+        rows.append(("leaderboard_fetched_at", str(meta["leaderboard_fetched_at"])))
     if meta.get("leaderboard_source"):
         rows.append(("leaderboard_source", str(meta["leaderboard_source"])))
     return rows
@@ -252,8 +261,11 @@ _COLUMN_CURATED_KEYS = {
     "scaffold_r2",
     "leaderboard_value",
     "leaderboard_metric",
+    "leaderboard_std",
     "leaderboard_split",
     "leaderboard_provider",
+    "leaderboard_comparable",
+    "leaderboard_fetched_at",
     "leaderboard_source",
     "description",
     "description_source",

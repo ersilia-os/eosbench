@@ -33,7 +33,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Metabolism and nutrition disorders": {
       "n_samples": 1427,
@@ -52,7 +55,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Product issues": {
       "n_samples": 1427,
@@ -71,7 +77,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Eye disorders": {
       "n_samples": 1427,
@@ -90,7 +99,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Investigations": {
       "n_samples": 1427,
@@ -109,7 +121,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Musculoskeletal and connective tissue disorders": {
       "n_samples": 1427,
@@ -128,7 +143,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Gastrointestinal disorders": {
       "n_samples": 1427,
@@ -147,7 +165,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Social circumstances": {
       "n_samples": 1427,
@@ -166,7 +187,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Immune system disorders": {
       "n_samples": 1427,
@@ -185,7 +209,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Reproductive system and breast disorders": {
       "n_samples": 1427,
@@ -204,7 +231,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Neoplasms benign, malignant and unspecified (incl cysts and polyps)": {
       "n_samples": 1427,
@@ -223,7 +253,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "General disorders and administration site conditions": {
       "n_samples": 1427,
@@ -242,7 +275,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Endocrine disorders": {
       "n_samples": 1427,
@@ -261,7 +297,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Surgical and medical procedures": {
       "n_samples": 1427,
@@ -280,7 +319,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Vascular disorders": {
       "n_samples": 1427,
@@ -299,7 +341,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Blood and lymphatic system disorders": {
       "n_samples": 1427,
@@ -318,7 +363,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Skin and subcutaneous tissue disorders": {
       "n_samples": 1427,
@@ -337,7 +385,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Congenital, familial and genetic disorders": {
       "n_samples": 1427,
@@ -356,7 +407,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Infections and infestations": {
       "n_samples": 1427,
@@ -375,7 +429,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Respiratory, thoracic and mediastinal disorders": {
       "n_samples": 1427,
@@ -394,7 +451,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Psychiatric disorders": {
       "n_samples": 1427,
@@ -413,7 +473,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Renal and urinary disorders": {
       "n_samples": 1427,
@@ -432,7 +495,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Pregnancy, puerperium and perinatal conditions": {
       "n_samples": 1427,
@@ -451,7 +517,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Ear and labyrinth disorders": {
       "n_samples": 1427,
@@ -470,7 +539,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Cardiac disorders": {
       "n_samples": 1427,
@@ -489,7 +561,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Nervous system disorders": {
       "n_samples": 1427,
@@ -508,7 +583,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "Injury, poisoning and procedural complications": {
       "n_samples": 1427,
@@ -527,7 +605,10 @@
       "leaderboard_value": 0.638,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     }
   },
   "auroc_mean": 0.6666054033404997,
@@ -537,5 +618,8 @@
   "leaderboard_split": "random",
   "leaderboard_provider": "moleculenet",
   "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (27-task avg)",
-  "size_bytes": 25965959
+  "size_bytes": 25965959,
+  "leaderboard_std": null,
+  "leaderboard_fetched_at": null,
+  "leaderboard_comparable": "unverified"
 }

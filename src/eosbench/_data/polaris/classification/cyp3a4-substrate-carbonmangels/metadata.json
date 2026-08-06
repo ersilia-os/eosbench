@@ -1,0 +1,53 @@
+{
+  "source": "polaris",
+  "dataset": "cyp3a4-substrate-carbonmangels",
+  "task": "classification",
+  "last_updated": "2026-08-06",
+  "n_molecules": 670,
+  "n_columns": 1,
+  "featurizers": [
+    "morgan",
+    "rdkit"
+  ],
+  "split": {
+    "random_n_folds": 5,
+    "scaffold_split_method": "polaris",
+    "conserved": true,
+    "stratified": true
+  },
+  "columns": {
+    "cyp3a4-substrate-carbonmangels": {
+      "n_samples": 670,
+      "n_positives": 355,
+      "n_negatives": 315,
+      "random_auroc_mean": 0.6954169461211714,
+      "random_auroc_std": 0.03289238356074276,
+      "random_aupr_mean": 0.7161031101855315,
+      "random_aupr_std": 0.02186103963822631,
+      "scaffold_auroc": 0.6525768535262206,
+      "scaffold_aupr": 0.7209669778079936,
+      "scaffold_split_method": "polaris",
+      "scaffold_test_positives": 79,
+      "scaffold_test_negatives": 56,
+      "leaderboard_metric": "AUROC",
+      "leaderboard_value": 0.6958,
+      "leaderboard_std": null,
+      "leaderboard_split": "scaffold",
+      "leaderboard_provider": "polaris",
+      "leaderboard_source": "next-size-adjust, live Polaris Hub leaderboard",
+      "leaderboard_fetched_at": "2026-08-06",
+      "leaderboard_comparable": "yes"
+    }
+  },
+  "auroc_mean": 0.6954169461211714,
+  "aupr_mean": 0.7161031101855315,
+  "leaderboard_metric": "AUROC",
+  "leaderboard_value": 0.6958,
+  "leaderboard_std": null,
+  "leaderboard_split": "scaffold",
+  "leaderboard_provider": "polaris",
+  "leaderboard_source": "next-size-adjust, live Polaris Hub leaderboard",
+  "size_bytes": 12143890,
+  "leaderboard_fetched_at": "2026-08-06",
+  "leaderboard_comparable": "yes"
+}

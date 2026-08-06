@@ -33,7 +33,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     }
   },
   "auroc_mean": 0.6817937278291579,
@@ -43,5 +46,8 @@
   "leaderboard_split": null,
   "leaderboard_provider": null,
   "leaderboard_source": null,
-  "size_bytes": 1120070686
+  "size_bytes": 1120070686,
+  "leaderboard_std": null,
+  "leaderboard_fetched_at": null,
+  "leaderboard_comparable": null
 }

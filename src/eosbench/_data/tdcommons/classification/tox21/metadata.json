@@ -33,7 +33,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     },
     "NR-AR-LBD": {
       "n_samples": 6758,
@@ -52,7 +55,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     },
     "NR-AhR": {
       "n_samples": 6549,
@@ -71,7 +77,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     },
     "NR-Aromatase": {
       "n_samples": 5821,
@@ -90,7 +99,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     },
     "NR-ER": {
       "n_samples": 6193,
@@ -109,7 +121,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     },
     "NR-ER-LBD": {
       "n_samples": 6955,
@@ -128,7 +143,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     },
     "NR-PPAR-gamma": {
       "n_samples": 6450,
@@ -147,7 +165,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     },
     "SR-ARE": {
       "n_samples": 5832,
@@ -166,7 +187,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     },
     "SR-ATAD5": {
       "n_samples": 7072,
@@ -185,7 +209,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     },
     "SR-HSE": {
       "n_samples": 6467,
@@ -204,7 +231,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     },
     "SR-MMP": {
       "n_samples": 5810,
@@ -223,7 +253,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     },
     "SR-p53": {
       "n_samples": 6774,
@@ -242,7 +275,10 @@
       "leaderboard_value": null,
       "leaderboard_split": null,
       "leaderboard_provider": null,
-      "leaderboard_source": null
+      "leaderboard_source": null,
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": null
     }
   },
   "auroc_mean": 0.8250069391428995,
@@ -252,5 +288,8 @@
   "leaderboard_split": null,
   "leaderboard_provider": null,
   "leaderboard_source": null,
-  "size_bytes": 142135963
+  "size_bytes": 142135963,
+  "leaderboard_std": null,
+  "leaderboard_fetched_at": null,
+  "leaderboard_comparable": null
 }

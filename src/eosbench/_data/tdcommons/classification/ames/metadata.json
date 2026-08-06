@@ -32,8 +32,11 @@
       "leaderboard_metric": "AUROC",
       "leaderboard_value": 0.871,
       "leaderboard_split": "scaffold",
-      "leaderboard_provider": "polaris",
-      "leaderboard_source": "ZairaChem, Polaris TDC ADMET leaderboard"
+      "leaderboard_provider": "tdc",
+      "leaderboard_source": "ZairaChem, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+      "leaderboard_std": 0.002,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "split_only"
     }
   },
   "auroc_mean": 0.9090203798905228,
@@ -41,7 +44,10 @@
   "leaderboard_metric": "AUROC",
   "leaderboard_value": 0.871,
   "leaderboard_split": "scaffold",
-  "leaderboard_provider": "polaris",
-  "leaderboard_source": "ZairaChem, Polaris TDC ADMET leaderboard",
-  "size_bytes": 131770196
+  "leaderboard_provider": "tdc",
+  "leaderboard_source": "ZairaChem, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+  "size_bytes": 131770196,
+  "leaderboard_std": 0.002,
+  "leaderboard_fetched_at": null,
+  "leaderboard_comparable": "split_only"
 }

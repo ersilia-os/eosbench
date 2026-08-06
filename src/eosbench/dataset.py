@@ -597,7 +597,7 @@ def catalog_columns(task: str = "classification", expand: bool = False) -> list[
             "id", "name", "source", "task", "column" if expand else "n_columns", "n_tot",
             "size", "n_pos", "auroc", "auprc", "ratio", "rmse", "r2", "skew",
             "leaderboard_score", "leaderboard_metric", "leaderboard_split",
-            "leaderboard_provider", "last_updated",
+            "leaderboard_provider", "leaderboard_comparable", "last_updated",
         ]
     spec = _task_metric_spec(task)
     cols = ["id", "name", "source", "task", "column" if expand else "n_columns", "n_tot", "size"]
@@ -609,7 +609,10 @@ def catalog_columns(task: str = "classification", expand: bool = False) -> list[
     else:  # regression: skewness is the label-shape analog of the class-balance ratio
         cols.append("skew")
     # Published-leaderboard reference (best reported model), where known.
-    cols += ["leaderboard_score", "leaderboard_metric", "leaderboard_split", "leaderboard_provider"]
+    cols += [
+        "leaderboard_score", "leaderboard_metric", "leaderboard_split",
+        "leaderboard_provider", "leaderboard_comparable",
+    ]
     cols.append("last_updated")
     return cols
 
@@ -628,19 +631,27 @@ def get_catalog(
 
     The metric columns and class-balance columns depend on ``task``. Every view also
     carries ``leaderboard_score``/``leaderboard_metric``/``leaderboard_split``/
-    ``leaderboard_provider`` (the best published result, where known, the split it was
-    computed on, and where it came from — blank where no published reference exists).
-    ``leaderboard_provider`` matters because the reference isn't always from the same
-    dataset/split as the row itself: it can be cross-filled from a different source
+    ``leaderboard_provider``/``leaderboard_comparable`` (the best published result, where
+    known, the split it was computed on, where it came from, and whether that split is the
+    same one this row's own scaffold holdout uses — blank where no published reference
+    exists). ``leaderboard_provider`` matters because the reference isn't always from the
+    same dataset/split as the row itself: it can be cross-filled from a different source
     (e.g. a tdcommons row citing a MoleculeNet leaderboard number for the same assay) —
     ``leaderboard_split`` then describes *that other source's* split, not this row's.
+    ``leaderboard_comparable`` makes that explicit: ``"yes"`` (same test set, and both sides
+    are a single-run statistic — directly comparable to this row's own ``scaffold_auroc``),
+    ``"split_only"`` (same test set, but the published score is itself a multi-run average,
+    e.g. TDC's 5-seed leaderboard — a different *kind* of number, not just a different
+    draw), ``"no"`` (a different test set/split entirely), or ``"unverified"``.
 
     Classification (collapsed) — name, source, task, n_columns, n_tot, n_pos,
         auroc, auprc, ratio, leaderboard_score, leaderboard_metric, leaderboard_split,
-        leaderboard_provider, last_updated. ``expand=True`` swaps ``n_columns``→``column``.
+        leaderboard_provider, leaderboard_comparable, last_updated. ``expand=True`` swaps
+        ``n_columns``→``column``.
     Regression (collapsed) — name, source, task, n_columns, n_tot, rmse, r2,
         leaderboard_score, leaderboard_metric, leaderboard_split, leaderboard_provider,
-        last_updated (no n_pos/ratio). ``expand=True`` swaps ``n_columns``→``column``.
+        leaderboard_comparable, last_updated (no n_pos/ratio). ``expand=True`` swaps
+        ``n_columns``→``column``.
 
     ``task="all"`` returns both tasks in one frame with the union of columns (metrics that
     don't apply to a row are NaN).
@@ -688,6 +699,7 @@ def get_catalog(
                         "leaderboard_metric": c.get("leaderboard_metric"),
                         "leaderboard_split": c.get("leaderboard_split"),
                         "leaderboard_provider": c.get("leaderboard_provider"),
+                        "leaderboard_comparable": c.get("leaderboard_comparable"),
                         "last_updated": last_updated,
                     }
                     for disp, collapsed_key, percol_key in metrics:
@@ -727,6 +739,7 @@ def get_catalog(
                 "leaderboard_metric": meta.get("leaderboard_metric"),
                 "leaderboard_split": meta.get("leaderboard_split"),
                 "leaderboard_provider": meta.get("leaderboard_provider"),
+                "leaderboard_comparable": meta.get("leaderboard_comparable"),
                 "last_updated": last_updated,
             }
             for disp, collapsed_key, _percol_key in metrics:

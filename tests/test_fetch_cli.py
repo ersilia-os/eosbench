@@ -11,14 +11,19 @@ def test_select_datasets_filters_by_source_and_task():
     assert all(source == "tdcommons" and task == "classification" for source, _, task in targets)
 
 
-def test_select_datasets_name_filter_narrows_to_one():
+def test_select_datasets_name_filter_matches_across_sources():
+    # "ames" is prepared under both tdcommons (PyTDC) and polaris (Polaris's official
+    # split) -- a name filter with no --source matches the family in every source.
     targets = _select_datasets(None, "classification", "ames")
-    assert targets == [("tdcommons", "ames", "classification")]
+    assert sorted(targets) == [
+        ("polaris", "ames", "classification"),
+        ("tdcommons", "ames", "classification"),
+    ]
 
 
 def test_select_datasets_no_source_covers_every_source():
     all_sources = {source for source, _, _ in _select_datasets(None, "classification", None)}
-    assert all_sources == {"tdcommons", "moleculenet"}
+    assert all_sources == {"tdcommons", "moleculenet", "polaris"}
 
 
 def test_fetch_many_continues_past_a_failure(monkeypatch):

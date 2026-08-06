@@ -33,7 +33,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-548": {
       "n_samples": 14734,
@@ -52,7 +55,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-600": {
       "n_samples": 14728,
@@ -71,7 +77,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-644": {
       "n_samples": 14623,
@@ -90,7 +99,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-652": {
       "n_samples": 14902,
@@ -109,7 +121,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-689": {
       "n_samples": 14601,
@@ -128,7 +143,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-692": {
       "n_samples": 14644,
@@ -147,7 +165,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-712": {
       "n_samples": 14411,
@@ -166,7 +187,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-713": {
       "n_samples": 14836,
@@ -185,7 +209,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-733": {
       "n_samples": 14682,
@@ -204,7 +231,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-737": {
       "n_samples": 14691,
@@ -223,7 +253,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-810": {
       "n_samples": 14644,
@@ -242,7 +275,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-832": {
       "n_samples": 14667,
@@ -261,7 +297,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-846": {
       "n_samples": 14711,
@@ -280,7 +319,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-852": {
       "n_samples": 14651,
@@ -299,7 +341,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-858": {
       "n_samples": 14774,
@@ -318,7 +363,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     },
     "MUV-859": {
       "n_samples": 14746,
@@ -337,7 +385,10 @@
       "leaderboard_value": 0.184,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "unverified"
     }
   },
   "auroc_mean": 0.6941292097114719,
@@ -347,5 +398,8 @@
   "leaderboard_split": "random",
   "leaderboard_provider": "moleculenet",
   "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (17-task avg)",
-  "size_bytes": 1688496305
+  "size_bytes": 1688496305,
+  "leaderboard_std": null,
+  "leaderboard_fetched_at": null,
+  "leaderboard_comparable": "unverified"
 }

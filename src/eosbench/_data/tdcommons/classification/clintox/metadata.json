@@ -33,7 +33,10 @@
       "leaderboard_value": 0.832,
       "leaderboard_split": "random",
       "leaderboard_provider": "moleculenet",
-      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg); same dataset as TDC ClinTox"
+      "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg); same dataset as TDC ClinTox",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "no"
     }
   },
   "auroc_mean": 0.7575203306161733,
@@ -43,5 +46,8 @@
   "leaderboard_split": "random",
   "leaderboard_provider": "moleculenet",
   "leaderboard_source": "Wu et al. 2018 (MoleculeNet), best model (2-task avg); same dataset as TDC ClinTox",
-  "size_bytes": 26800454
+  "size_bytes": 26800454,
+  "leaderboard_std": null,
+  "leaderboard_fetched_at": null,
+  "leaderboard_comparable": "no"
 }

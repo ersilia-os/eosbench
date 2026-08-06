@@ -154,6 +154,7 @@ def test_catalog_columns_are_task_aware():
         "leaderboard_metric",
         "leaderboard_split",
         "leaderboard_provider",
+        "leaderboard_comparable",
         "last_updated",
     ]
     assert catalog_columns("regression") == [
@@ -171,6 +172,7 @@ def test_catalog_columns_are_task_aware():
         "leaderboard_metric",
         "leaderboard_split",
         "leaderboard_provider",
+        "leaderboard_comparable",
         "last_updated",
     ]
     assert "column" in catalog_columns("regression", expand=True)
@@ -178,18 +180,20 @@ def test_catalog_columns_are_task_aware():
 
 
 def test_catalog_columns_include_leaderboard():
-    assert catalog_columns("classification")[-5:] == [
+    assert catalog_columns("classification")[-6:] == [
         "leaderboard_score",
         "leaderboard_metric",
         "leaderboard_split",
         "leaderboard_provider",
+        "leaderboard_comparable",
         "last_updated",
     ]
-    assert catalog_columns("regression")[-5:] == [
+    assert catalog_columns("regression")[-6:] == [
         "leaderboard_score",
         "leaderboard_metric",
         "leaderboard_split",
         "leaderboard_provider",
+        "leaderboard_comparable",
         "last_updated",
     ]
 
@@ -204,21 +208,29 @@ def test_get_catalog_surfaces_leaderboard_for_moleculenet():
     assert sider["leaderboard_score"] == pytest.approx(0.638)
     assert sider["leaderboard_split"] == "random"
     assert sider["leaderboard_provider"] == "moleculenet"
+    # eosbench computes its own split for MoleculeNet families rather than honouring an
+    # official one, and that hasn't been verified against Wu et al.'s own split.
+    assert sider["leaderboard_comparable"] == "unverified"
 
 
-def test_get_catalog_leaderboard_for_tdcommons_from_polaris():
+def test_get_catalog_leaderboard_for_tdcommons_from_tdc():
     df = get_catalog(source="tdcommons").set_index("name")
-    # ADMET Benchmark Group tasks carry their official Polaris leaderboard score/metric.
+    # ADMET Benchmark Group tasks carry their official TDC leaderboard score/metric: a
+    # 5-run average on the same frozen split this row's own scaffold holdout uses -- same
+    # test set as a local single-run result, but a different *kind* of statistic
+    # (leaderboard_comparable is "split_only", not "yes").
     ames = df.loc["ames"]
     assert ames["leaderboard_metric"] == "AUROC"
     assert ames["leaderboard_score"] == pytest.approx(0.871)
     assert ames["leaderboard_split"] == "scaffold"
-    assert ames["leaderboard_provider"] == "polaris"
+    assert ames["leaderboard_provider"] == "tdc"
+    assert ames["leaderboard_comparable"] == "split_only"
     # clintox is cross-filled from MoleculeNet (TDC's ADMET group doesn't cover it), so its
     # leaderboard_split describes MoleculeNet's own random split, not this row's own scaffold
-    # split -- leaderboard_provider is what signals that mismatch is expected.
+    # split -- leaderboard_provider/leaderboard_comparable are what signal that mismatch.
     assert df.loc["clintox", "leaderboard_split"] == "random"
     assert df.loc["clintox", "leaderboard_provider"] == "moleculenet"
+    assert df.loc["clintox", "leaderboard_comparable"] == "no"
     # CYP inhibition tasks are ranked by AUPRC.
     assert df.loc["cyp2d6_veith", "leaderboard_metric"] == "AUPRC"
     # clintox is not in the ADMET group, but is cross-filled from MoleculeNet.

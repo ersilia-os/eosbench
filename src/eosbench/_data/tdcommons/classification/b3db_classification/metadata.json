@@ -31,17 +31,23 @@
       "scaffold_test_negatives": 380,
       "leaderboard_metric": "AUROC",
       "leaderboard_value": 0.96,
-      "leaderboard_split": "random (paper)",
+      "leaderboard_split": "random",
       "leaderboard_provider": "literature",
-      "leaderboard_source": "B3DB / B3clf best model (Meng et al., Sci. Data 2021)"
+      "leaderboard_source": "B3DB / B3clf best model (Meng et al., Sci. Data 2021)",
+      "leaderboard_std": null,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "no"
     }
   },
   "auroc_mean": 0.9456523886753967,
   "aupr_mean": 0.9686252772222416,
   "leaderboard_metric": "AUROC",
   "leaderboard_value": 0.96,
-  "leaderboard_split": "random (paper)",
+  "leaderboard_split": "random",
   "leaderboard_provider": "literature",
   "leaderboard_source": "B3DB / B3clf best model (Meng et al., Sci. Data 2021)",
-  "size_bytes": 111775999
+  "size_bytes": 111775999,
+  "leaderboard_std": null,
+  "leaderboard_fetched_at": null,
+  "leaderboard_comparable": "no"
 }

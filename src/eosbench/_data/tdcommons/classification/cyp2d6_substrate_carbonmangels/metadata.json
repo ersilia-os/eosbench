@@ -32,8 +32,11 @@
       "leaderboard_metric": "AUPRC",
       "leaderboard_value": 0.736,
       "leaderboard_split": "scaffold",
-      "leaderboard_provider": "polaris",
-      "leaderboard_source": "ContextPred, Polaris TDC ADMET leaderboard"
+      "leaderboard_provider": "tdc",
+      "leaderboard_source": "ContextPred, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+      "leaderboard_std": 0.024,
+      "leaderboard_fetched_at": null,
+      "leaderboard_comparable": "split_only"
     }
   },
   "auroc_mean": 0.7705672899353647,
@@ -41,7 +44,10 @@
   "leaderboard_metric": "AUPRC",
   "leaderboard_value": 0.736,
   "leaderboard_split": "scaffold",
-  "leaderboard_provider": "polaris",
-  "leaderboard_source": "ContextPred, Polaris TDC ADMET leaderboard",
-  "size_bytes": 12089060
+  "leaderboard_provider": "tdc",
+  "leaderboard_source": "ContextPred, TDC ADMET Benchmark Group leaderboard (5-run avg)",
+  "size_bytes": 12089060,
+  "leaderboard_std": 0.024,
+  "leaderboard_fetched_at": null,
+  "leaderboard_comparable": "split_only"
 }

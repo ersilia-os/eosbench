@@ -382,6 +382,17 @@ def _leaderboard_fields(leaderboard: dict | None) -> dict:
         "leaderboard_split": lb.get("split"),
         "leaderboard_provider": lb.get("provider"),
         "leaderboard_source": lb.get("source"),
+        # When this specific *score* was captured, distinct from the family's own
+        # last_updated -- a leaderboard can be refreshed (e.g. by
+        # fetch_polaris_leaderboard.py) without re-preparing the dataset itself, and a
+        # live leaderboard can move between refreshes (see that script's docstring).
+        "leaderboard_fetched_at": lb.get("fetched_at"),
+        # Whether a local single-run scaffold-holdout result is a fair comparison to THIS
+        # score: "yes" (same test set, single-run on both sides), "split_only" (same test
+        # set, but this score is itself a multi-run average -- a different kind of number),
+        # "no" (a different test set/split entirely), or "unverified" (not checked either
+        # way). See the curated leaderboard JSONs' _comment for the reasoning per entry.
+        "leaderboard_comparable": lb.get("comparable"),
     }
 
 
